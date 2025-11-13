@@ -216,7 +216,42 @@ export const getSectorStocks = (sector) => {
 };
 
 /**
- * API에서 실시간 가격 데이터를 가져와 포트폴리오 업데이트
+ * Yahoo Finance API에서 실시간 가격 데이터를 가져와 포트폴리오 업데이트
+ * @param {Array} portfolio - 포트폴리오 배열
+ * @param {Object} yahooData - Yahoo Finance에서 가져온 데이터
+ * @returns {Array} 업데이트된 포트폴리오
+ */
+export const updatePortfolioWithYahooData = (portfolio, yahooData) => {
+  if (!yahooData || Object.keys(yahooData).length === 0) {
+    return portfolio;
+  }
+
+  return portfolio.map(stock => {
+    const apiData = yahooData[stock.ticker];
+    if (apiData && apiData.price) {
+      return {
+        ...stock,
+        price: apiData.price,
+        previousClose: apiData.previousClose,
+        open: apiData.open,
+        dayHigh: apiData.dayHigh,
+        dayLow: apiData.dayLow,
+        volume: apiData.volume,
+        marketCap: apiData.marketCap,
+        fiftyTwoWeekHigh: apiData.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: apiData.fiftyTwoWeekLow,
+        dividendYield: apiData.dividendYield || stock.dividendYield,
+        per: apiData.trailingPE || stock.per,
+        priceToBook: apiData.priceToBook,
+        lastUpdated: apiData.lastUpdated
+      };
+    }
+    return stock;
+  });
+};
+
+/**
+ * API에서 실시간 가격 데이터를 가져와 포트폴리오 업데이트 (이전 버전 호환)
  * @param {Array} portfolio - 포트폴리오 배열
  * @param {Object} apiPrices - API에서 가져온 가격 데이터
  * @returns {Array} 업데이트된 포트폴리오

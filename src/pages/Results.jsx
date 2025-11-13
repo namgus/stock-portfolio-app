@@ -2,8 +2,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp, Shield, DollarSign, PieChart as PieChartIcon, ArrowLeft, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { generatePortfolio } from '../utils/portfolioRecommendation';
-import { getBatchStockPrices, isApiKeyConfigured, getLatestBusinessDate } from '../utils/publicDataApi';
-import { extractStockCodes, updatePortfolioWithApiPrices } from '../data/stockData';
+import { fetchStockData, getCacheStatus, clearCache } from '../utils/yahooFinanceApi';
+import { extractStockCodes, updatePortfolioWithYahooData } from '../data/stockData';
 
 const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -11,43 +11,75 @@ const Results = ({ surveyData, onBack }) => {
   const initialResult = useMemo(() => generatePortfolio(surveyData), [surveyData]);
   const [result, setResult] = useState(initialResult);
   const [loading, setLoading] = useState(false);
-  const [apiEnabled, setApiEnabled] = useState(isApiKeyConfigured());
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [cacheInfo, setCacheInfo] = useState(null);
 
-  // API에서 실시간 데이터 로드
+  // Yahoo Finance에서 실시간 데이터 로드
   useEffect(() => {
     const loadStockPrices = async () => {
-      if (!apiEnabled) {
-        console.log('API 키가 설정되지 않았습니다. 샘플 데이터를 사용합니다.');
-        return;
-      }
-
       setLoading(true);
       try {
         const stockCodes = extractStockCodes(initialResult.portfolio);
-        const businessDate = getLatestBusinessDate();
 
-        console.log('주식 시세 데이터 로딩 중...', stockCodes);
-        const apiPrices = await getBatchStockPrices(stockCodes, businessDate);
+        console.log('Yahoo Finance에서 주식 시세 데이터 로딩 중...', stockCodes);
 
-        if (apiPrices && Object.keys(apiPrices).length > 0) {
-          const updatedPortfolio = updatePortfolioWithApiPrices(initialResult.portfolio, apiPrices);
+        // 캐시 상태 확인
+        const cacheStatus = getCacheStatus();
+        setCacheInfo(cacheStatus);
+
+        // 데이터 가져오기 (캐시 우선)
+        const yahooData = await fetchStockData(stockCodes);
+
+        if (yahooData && Object.keys(yahooData).length > 0) {
+          const updatedPortfolio = updatePortfolioWithYahooData(initialResult.portfolio, yahooData);
           setResult({
             ...initialResult,
             portfolio: updatedPortfolio
           });
-          setLastUpdated(new Date().toLocaleString('ko-KR'));
-          console.log('주식 시세 데이터 로드 완료');
+
+          // 업데이트 시간 설정
+          const status = getCacheStatus();
+          setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
+          setCacheInfo(status);
+
+          console.log('주식 시세 데이터 로드 완료:', Object.keys(yahooData).length, '개 종목');
         }
       } catch (error) {
-        console.error('주식 시세 데이터 로드 실패:', error);
+        console.error('Yahoo Finance 데이터 로드 실패:', error);
       } finally {
         setLoading(false);
       }
     };
 
     loadStockPrices();
-  }, [apiEnabled, initialResult]);
+  }, [initialResult]);
+
+  // 수동 새로고침
+  const handleRefresh = async () => {
+    clearCache();
+    setLoading(true);
+
+    try {
+      const stockCodes = extractStockCodes(initialResult.portfolio);
+      const yahooData = await fetchStockData(stockCodes, true); // 강제 새로고침
+
+      if (yahooData && Object.keys(yahooData).length > 0) {
+        const updatedPortfolio = updatePortfolioWithYahooData(initialResult.portfolio, yahooData);
+        setResult({
+          ...initialResult,
+          portfolio: updatedPortfolio
+        });
+
+        const status = getCacheStatus();
+        setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
+        setCacheInfo(status);
+      }
+    } catch (error) {
+      console.error('데이터 새로고침 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const chartData = result.portfolio.map((stock, index) => ({
     name: stock.name,
@@ -85,40 +117,49 @@ const Results = ({ surveyData, onBack }) => {
             {loading && (
               <div className="flex items-center text-primary-600">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                <span className="text-sm">실시간 데이터 로딩 중...</span>
+                <span className="text-sm">Yahoo Finance 데이터 로딩 중...</span>
               </div>
             )}
           </div>
 
-          {/* API 상태 알림 */}
-          {!apiEnabled && (
-            <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    API 키가 설정되지 않아 샘플 데이터를 사용합니다.
-                    <a
-                      href="https://www.data.go.kr/data/15094808/openapi.do"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium underline ml-1"
-                    >
-                      공공데이터포털
-                    </a>
-                    에서 API 키를 발급받아 .env 파일에 설정하세요.
-                  </p>
-                </div>
+          {/* 캐시 및 업데이트 정보 */}
+          {lastUpdated && (
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center text-sm text-gray-600">
+                <RefreshCw className="w-4 h-4 mr-1" />
+                <span>마지막 업데이트: {lastUpdated}</span>
+                {cacheInfo && cacheInfo.age !== null && (
+                  <span className="ml-2 text-gray-500">
+                    ({cacheInfo.age}시간 전)
+                  </span>
+                )}
               </div>
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                새로고침
+              </button>
             </div>
           )}
 
-          {apiEnabled && lastUpdated && (
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <RefreshCw className="w-4 h-4 mr-1" />
-              마지막 업데이트: {lastUpdated}
+          {/* Yahoo Finance 정보 */}
+          <div className="mt-4 bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  Yahoo Finance에서 실시간 주가 데이터를 가져옵니다.
+                  데이터는 하루에 한 번 자동으로 업데이트되며, 브라우저에 캐시됩니다.
+                  {cacheInfo && cacheInfo.isExpired && (
+                    <span className="font-semibold"> (캐시가 만료되어 새로운 데이터를 가져옵니다.)</span>
+                  )}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -248,24 +289,46 @@ const Results = ({ surveyData, onBack }) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t">
                     <div>
                       <p className="text-xs text-gray-500">현재가</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.price)}원</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
                     </div>
+                    {stock.previousClose && (
+                      <div>
+                        <p className="text-xs text-gray-500">전일종가</p>
+                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
+                      </div>
+                    )}
+                    {stock.dayHigh && stock.dayLow && (
+                      <div>
+                        <p className="text-xs text-gray-500">일일 범위</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
+                        </p>
+                      </div>
+                    )}
                     {stock.per && (
                       <div>
                         <p className="text-xs text-gray-500">PER</p>
                         <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
                       </div>
                     )}
-                    {stock.roe && (
+                    {stock.priceToBook && (
                       <div>
-                        <p className="text-xs text-gray-500">ROE</p>
-                        <p className="text-sm font-semibold text-gray-900">{stock.roe}%</p>
+                        <p className="text-xs text-gray-500">PBR</p>
+                        <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
                       </div>
                     )}
                     {stock.dividendYield && (
                       <div>
                         <p className="text-xs text-gray-500">배당수익률</p>
                         <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
+                      </div>
+                    )}
+                    {stock.marketCap && (
+                      <div>
+                        <p className="text-xs text-gray-500">시가총액</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {(stock.marketCap / 1000000000000).toFixed(1)}조원
+                        </p>
                       </div>
                     )}
                     {stock.volume && (
