@@ -26,7 +26,13 @@ export const generatePortfolio = (surveyData) => {
   else if (riskTolerance === 'moderate') {
     strategy = '안정성과 성장성의 균형을 맞춘 포트폴리오';
     const largeCapStocks = selectStocks(stocks.largeCapStocks, 3, preferredSectors);
-    const growthStocks = selectStocks(stocks.growthStocks, 2, preferredSectors);
+
+    // 이미 선택된 종목 제외
+    const selectedTickers = new Set(largeCapStocks.map(s => s.ticker));
+    const availableGrowthStocks = stocks.growthStocks.filter(
+      s => !selectedTickers.has(s.ticker)
+    );
+    const growthStocks = selectStocks(availableGrowthStocks, 2, preferredSectors);
     const etfStock = stocks.etfs[0]; // KODEX 200
 
     portfolio = [
@@ -39,7 +45,13 @@ export const generatePortfolio = (surveyData) => {
   else if (riskTolerance === 'aggressive') {
     strategy = '높은 성장성을 추구하는 공격적 포트폴리오';
     const growthStocks = selectStocks(stocks.growthStocks, 5, preferredSectors);
-    const midCapStocks = selectStocks([...stocks.growthStocks, ...stocks.largeCapStocks], 3, preferredSectors);
+
+    // 이미 선택된 종목 제외
+    const selectedTickers = new Set(growthStocks.map(s => s.ticker));
+    const availableStocks = [...stocks.growthStocks, ...stocks.largeCapStocks].filter(
+      s => !selectedTickers.has(s.ticker)
+    );
+    const midCapStocks = selectStocks(availableStocks, 3, preferredSectors);
 
     portfolio = [
       ...growthStocks.map(stock => ({ ...stock, allocation: 60 / 5 })),

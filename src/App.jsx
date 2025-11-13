@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Home from './pages/Home';
 import Survey from './pages/Survey';
 import Results from './pages/Results';
+import MyAssets from './pages/MyAssets';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -10,6 +11,10 @@ function App() {
 
   const navigateToSurvey = () => {
     setCurrentPage('survey');
+  };
+
+  const navigateToMyAssets = () => {
+    setCurrentPage('myAssets');
   };
 
   const handleSurveyComplete = (data) => {
@@ -25,7 +30,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {currentPage === 'home' && <Home onStart={navigateToSurvey} />}
+      {currentPage === 'home' && (
+        <Home
+          onStart={navigateToSurvey}
+          onMyAssets={navigateToMyAssets}
+        />
+      )}
       {currentPage === 'survey' && (
         <Survey
           onComplete={handleSurveyComplete}
@@ -37,6 +47,9 @@ function App() {
           surveyData={surveyData}
           onBack={navigateToHome}
         />
+      )}
+      {currentPage === 'myAssets' && (
+        <MyAssets onBack={navigateToHome} />
       )}
     </div>
   );

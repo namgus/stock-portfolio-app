@@ -1,6 +1,6 @@
-import { TrendingUp, Shield, Target, PieChart } from 'lucide-react';
+import { TrendingUp, Shield, Target, PieChart, Wallet } from 'lucide-react';
 
-const Home = ({ onStart }) => {
+const Home = ({ onStart, onMyAssets }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
@@ -24,12 +24,19 @@ const Home = ({ onStart }) => {
             간단한 질문에 답하고, AI가 분석한 개인화된 주식 포트폴리오와
             절세 전략을 받아보세요.
           </p>
-          <div className="mt-10">
+          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={onStart}
               className="px-8 py-4 bg-primary-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-all duration-200 transform hover:scale-105"
             >
               포트폴리오 추천 시작하기
+            </button>
+            <button
+              onClick={onMyAssets}
+              className="flex items-center justify-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-green-700 transition-all duration-200 transform hover:scale-105"
+            >
+              <Wallet className="w-5 h-5 mr-2" />
+              내 자산 보기
             </button>
           </div>
         </div>

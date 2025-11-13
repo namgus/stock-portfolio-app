@@ -1,9 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { TrendingUp, Shield, DollarSign, PieChart as PieChartIcon, ArrowLeft, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { TrendingUp, Shield, DollarSign, PieChart as PieChartIcon, ArrowLeft, AlertCircle, Loader2, RefreshCw, Edit3, Save, X } from 'lucide-react';
 import { generatePortfolio } from '../utils/portfolioRecommendation';
 import { fetchStockData, getCacheStatus, clearCache } from '../utils/yahooFinanceApi';
 import { extractStockCodes, updatePortfolioWithYahooData } from '../data/stockData';
+import MPTAnalysis from '../components/MPTAnalysis';
+import Backtesting from '../components/Backtesting';
+import NewsSentiment from '../components/NewsSentiment';
+import Recommendations from '../components/Recommendations';
 
 const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -14,38 +18,63 @@ const Results = ({ surveyData, onBack }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [cacheInfo, setCacheInfo] = useState(null);
 
-  // Yahoo Finance에서 실시간 데이터 로드
+  // 포트폴리오 관리 상태
+  const [portfolioData, setPortfolioData] = useState(() => {
+    const saved = localStorage.getItem('portfolioData');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [editingStock, setEditingStock] = useState(null);
+  const [editValues, setEditValues] = useState({ shares: '', buyPrice: '' });
+
+  // 자동 새로고침 설정
+  const [autoRefresh, setAutoRefresh] = useState(() => {
+    const saved = localStorage.getItem('autoRefresh');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [refreshInterval, setRefreshInterval] = useState(() => {
+    const saved = localStorage.getItem('refreshInterval');
+    return saved ? parseInt(saved) : 60; // 기본 60초
+  });
+
+  // 주식 시세 데이터 로드 (pykrx 사용)
   useEffect(() => {
     const loadStockPrices = async () => {
       setLoading(true);
       try {
         const stockCodes = extractStockCodes(initialResult.portfolio);
 
-        console.log('Yahoo Finance에서 주식 시세 데이터 로딩 중...', stockCodes);
+        console.log('주식 시세 데이터 로딩 중 (pykrx)...', stockCodes);
 
-        // 캐시 상태 확인
-        const cacheStatus = getCacheStatus();
+        // 캐시 상태 확인 (async)
+        const cacheStatus = await getCacheStatus();
         setCacheInfo(cacheStatus);
 
         // 데이터 가져오기 (캐시 우선)
         const yahooData = await fetchStockData(stockCodes);
 
         if (yahooData && Object.keys(yahooData).length > 0) {
+          console.log('받은 API 데이터:', yahooData);
+
           const updatedPortfolio = updatePortfolioWithYahooData(initialResult.portfolio, yahooData);
+          console.log('업데이트된 포트폴리오:', updatedPortfolio);
+
           setResult({
             ...initialResult,
             portfolio: updatedPortfolio
           });
 
           // 업데이트 시간 설정
-          const status = getCacheStatus();
+          const status = await getCacheStatus();
           setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
           setCacheInfo(status);
 
           console.log('주식 시세 데이터 로드 완료:', Object.keys(yahooData).length, '개 종목');
+        } else {
+          console.warn('API 데이터가 비어있습니다. 샘플 데이터를 사용합니다.');
         }
       } catch (error) {
-        console.error('Yahoo Finance 데이터 로드 실패:', error);
+        console.error('백엔드 API 데이터 로드 실패:', error);
+        console.error('백엔드 서버(http://localhost:3001)가 실행 중인지 확인해주세요.');
       } finally {
         setLoading(false);
       }
@@ -54,9 +83,47 @@ const Results = ({ surveyData, onBack }) => {
     loadStockPrices();
   }, [initialResult]);
 
+  // 자동 새로고침 타이머
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const timer = setInterval(async () => {
+      console.log('자동 새로고침 실행 중...');
+      try {
+        const stockCodes = extractStockCodes(initialResult.portfolio);
+        const yahooData = await fetchStockData(stockCodes, true);
+
+        if (yahooData && Object.keys(yahooData).length > 0) {
+          const updatedPortfolio = updatePortfolioWithYahooData(initialResult.portfolio, yahooData);
+          setResult({
+            ...initialResult,
+            portfolio: updatedPortfolio
+          });
+
+          const status = await getCacheStatus();
+          setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
+          setCacheInfo(status);
+        }
+      } catch (error) {
+        console.error('자동 새로고침 실패:', error);
+      }
+    }, refreshInterval * 1000);
+
+    return () => clearInterval(timer);
+  }, [autoRefresh, refreshInterval, initialResult]);
+
+  // 자동 새로고침 설정 저장
+  useEffect(() => {
+    localStorage.setItem('autoRefresh', JSON.stringify(autoRefresh));
+  }, [autoRefresh]);
+
+  useEffect(() => {
+    localStorage.setItem('refreshInterval', refreshInterval.toString());
+  }, [refreshInterval]);
+
   // 수동 새로고침
   const handleRefresh = async () => {
-    clearCache();
+    await clearCache();
     setLoading(true);
 
     try {
@@ -70,7 +137,7 @@ const Results = ({ surveyData, onBack }) => {
           portfolio: updatedPortfolio
         });
 
-        const status = getCacheStatus();
+        const status = await getCacheStatus();
         setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
         setCacheInfo(status);
       }
@@ -81,11 +148,114 @@ const Results = ({ surveyData, onBack }) => {
     }
   };
 
+  // 포트폴리오 데이터 관리 함수
+  const handleEditStart = (ticker) => {
+    const existing = portfolioData[ticker] || { shares: '', buyPrice: '' };
+    setEditingStock(ticker);
+    setEditValues(existing);
+  };
+
+  const handleEditSave = (ticker) => {
+    const newData = {
+      ...portfolioData,
+      [ticker]: {
+        shares: parseFloat(editValues.shares) || 0,
+        buyPrice: parseFloat(editValues.buyPrice) || 0
+      }
+    };
+    setPortfolioData(newData);
+    localStorage.setItem('portfolioData', JSON.stringify(newData));
+    setEditingStock(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingStock(null);
+    setEditValues({ shares: '', buyPrice: '' });
+  };
+
+  // 손익 계산 함수
+  const calculateProfit = (stock) => {
+    const data = portfolioData[stock.ticker];
+    if (!data || !data.shares || !data.buyPrice) return null;
+
+    const currentValue = stock.price * data.shares;
+    const purchaseValue = data.buyPrice * data.shares;
+    const profit = currentValue - purchaseValue;
+    const profitPercent = (profit / purchaseValue) * 100;
+
+    return {
+      currentValue,
+      purchaseValue,
+      profit,
+      profitPercent,
+      shares: data.shares,
+      buyPrice: data.buyPrice
+    };
+  };
+
+  // 전체 포트폴리오 통계
+  const totalStats = useMemo(() => {
+    let totalCurrentValue = 0;
+    let totalPurchaseValue = 0;
+    let totalProfit = 0;
+
+    result.portfolio.forEach(stock => {
+      const profitData = calculateProfit(stock);
+      if (profitData) {
+        totalCurrentValue += profitData.currentValue;
+        totalPurchaseValue += profitData.purchaseValue;
+        totalProfit += profitData.profit;
+      }
+    });
+
+    const totalProfitPercent = totalPurchaseValue > 0 ? (totalProfit / totalPurchaseValue) * 100 : 0;
+
+    return {
+      totalCurrentValue,
+      totalPurchaseValue,
+      totalProfit,
+      totalProfitPercent,
+      hasData: totalPurchaseValue > 0
+    };
+  }, [result.portfolio, portfolioData]);
+
   const chartData = result.portfolio.map((stock, index) => ({
     name: stock.name,
     value: stock.allocation,
     color: COLORS[index % COLORS.length]
   }));
+
+  // 섹터별 분산도 계산
+  const sectorData = useMemo(() => {
+    const sectors = {};
+    result.portfolio.forEach(stock => {
+      const sector = stock.sector || 'other';
+      if (!sectors[sector]) {
+        sectors[sector] = { name: sector, value: 0, stocks: [] };
+      }
+      sectors[sector].value += stock.allocation;
+      sectors[sector].stocks.push(stock.name);
+    });
+
+    const sectorLabels = {
+      tech: 'IT/기술',
+      finance: '금융',
+      consumer: '소비재',
+      healthcare: '헬스케어',
+      energy: '에너지',
+      materials: '소재',
+      industrial: '산업재',
+      telecom: '통신',
+      etf: 'ETF',
+      other: '기타'
+    };
+
+    return Object.values(sectors).map((sector, index) => ({
+      ...sector,
+      name: sectorLabels[sector.name] || sector.name,
+      color: COLORS[index % COLORS.length]
+    }));
+  }, [result.portfolio]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ko-KR').format(value);
@@ -117,7 +287,7 @@ const Results = ({ surveyData, onBack }) => {
             {loading && (
               <div className="flex items-center text-primary-600">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                <span className="text-sm">Yahoo Finance 데이터 로딩 중...</span>
+                <span className="text-sm">주식 시세 데이터 로딩 중...</span>
               </div>
             )}
           </div>
@@ -142,17 +312,46 @@ const Results = ({ surveyData, onBack }) => {
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                 새로고침
               </button>
+
+              {/* 자동 새로고침 토글 */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={autoRefresh}
+                      onChange={(e) => setAutoRefresh(e.target.checked)}
+                    />
+                    <div className={`block w-10 h-6 rounded-full transition-colors ${autoRefresh ? 'bg-primary-600' : 'bg-gray-300'}`}></div>
+                    <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${autoRefresh ? 'transform translate-x-4' : ''}`}></div>
+                  </div>
+                  <span className="ml-2 text-sm text-gray-700">자동 새로고침</span>
+                </label>
+                {autoRefresh && (
+                  <select
+                    value={refreshInterval}
+                    onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
+                    className="text-sm border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value={30}>30초</option>
+                    <option value={60}>60초</option>
+                    <option value={120}>2분</option>
+                    <option value={300}>5분</option>
+                  </select>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Yahoo Finance 정보 */}
+          {/* 데이터 출처 정보 */}
           <div className="mt-4 bg-blue-50 border-l-4 border-blue-400 p-4">
             <div className="flex">
               <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  Yahoo Finance에서 실시간 주가 데이터를 가져옵니다.
-                  데이터는 하루에 한 번 자동으로 업데이트되며, 브라우저에 캐시됩니다.
+                  pykrx 라이브러리를 통해 한국거래소(KRX)의 당일 시세 데이터를 가져옵니다.
+                  장 마감 후(15:30) 최종 종가가 확정되며, 데이터는 서버에 캐시됩니다.
                   {cacheInfo && cacheInfo.isExpired && (
                     <span className="font-semibold"> (캐시가 만료되어 새로운 데이터를 가져옵니다.)</span>
                   )}
@@ -162,8 +361,42 @@ const Results = ({ surveyData, onBack }) => {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Summary Cards - 애니메이션 추가 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-[fadeInUp_0.5s_ease-out]">
+          <style>
+            {`
+              @keyframes fadeInUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+
+              @keyframes slideIn {
+                from {
+                  opacity: 0;
+                  transform: translateX(-20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateX(0);
+                }
+              }
+
+              @keyframes pulse {
+                0%, 100% {
+                  opacity: 1;
+                }
+                50% {
+                  opacity: 0.8;
+                }
+              }
+            `}
+          </style>
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -215,6 +448,42 @@ const Results = ({ surveyData, onBack }) => {
               </div>
             </div>
           </div>
+
+          {/* 총 손익 카드 */}
+          <div className={`bg-white rounded-xl shadow-md p-6 ${totalStats.hasData ? 'ring-2 ring-primary-200' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">총 평가손익</p>
+                {totalStats.hasData ? (
+                  <>
+                    <p className={`text-2xl font-bold mt-1 ${totalStats.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {totalStats.totalProfit >= 0 ? '+' : ''}{formatCurrency(Math.round(totalStats.totalProfit))}원
+                    </p>
+                    <p className={`text-sm mt-1 ${totalStats.totalProfitPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {totalStats.totalProfitPercent >= 0 ? '+' : ''}{totalStats.totalProfitPercent.toFixed(2)}%
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-lg text-gray-400 mt-1">보유 정보 입력</p>
+                )}
+              </div>
+              <div className={`h-12 w-12 rounded-full flex items-center justify-center ${totalStats.totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                <DollarSign className={`h-6 w-6 ${totalStats.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+              </div>
+            </div>
+            {totalStats.hasData && (
+              <div className="mt-4 pt-4 border-t text-xs text-gray-600">
+                <div className="flex justify-between">
+                  <span>평가금액</span>
+                  <span className="font-semibold">{formatCurrency(Math.round(totalStats.totalCurrentValue))}원</span>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span>매수금액</span>
+                  <span className="font-semibold">{formatCurrency(Math.round(totalStats.totalPurchaseValue))}원</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Main Content Grid */}
@@ -255,91 +524,231 @@ const Results = ({ surveyData, onBack }) => {
                 </div>
               ))}
             </div>
+
+            {/* 섹터별 분산도 차트 */}
+            <div className="mt-8 pt-8 border-t">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">섹터별 분산도</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={sectorData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name} ${value.toFixed(0)}%`}
+                    outerRadius={70}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {sectorData.map((entry, index) => (
+                      <Cell key={`sector-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => [
+                      `${value.toFixed(1)}% (${props.payload.stocks.join(', ')})`,
+                      name
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 space-y-2">
+                {sectorData.map((item, index) => (
+                  <div key={index} className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-sm text-gray-700 flex-1">{item.name}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {formatPercent(item.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Stock List */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">추천 종목 상세</h2>
             <div className="space-y-4">
-              {result.portfolio.map((stock, index) => (
-                <div
-                  key={index}
-                  className="border-2 border-gray-100 rounded-lg p-4 hover:border-primary-200 hover:bg-primary-50/30 transition-all"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <h3 className="text-lg font-bold text-gray-900">{stock.name}</h3>
-                        <span className="ml-3 text-sm text-gray-500">({stock.ticker})</span>
-                        {stock.lastUpdated && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                            실시간
-                          </span>
+              {result.portfolio.map((stock, index) => {
+                const profitData = calculateProfit(stock);
+                const isEditing = editingStock === stock.ticker;
+
+                return (
+                  <div
+                    key={index}
+                    className={`border-2 rounded-lg p-4 transition-all ${
+                      profitData
+                        ? 'border-primary-300 bg-primary-50/20'
+                        : 'border-gray-100 hover:border-primary-200 hover:bg-primary-50/30'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-bold text-gray-900">{stock.name}</h3>
+                          <span className="ml-3 text-sm text-gray-500">({stock.ticker})</span>
+                          {stock.lastUpdated && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              실시간
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{stock.description}</p>
+                      </div>
+                      <div className="text-right ml-4 flex items-center gap-2">
+                        <div>
+                          <div className="text-2xl font-bold text-primary-600">
+                            {formatPercent(stock.allocation)}
+                          </div>
+                          <div className="text-sm text-gray-500">비중</div>
+                        </div>
+                        {!isEditing && (
+                          <button
+                            onClick={() => handleEditStart(stock.ticker)}
+                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                            title="보유 정보 입력"
+                          >
+                            <Edit3 className="w-5 h-5 text-gray-600" />
+                          </button>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{stock.description}</p>
                     </div>
-                    <div className="text-right ml-4">
-                      <div className="text-2xl font-bold text-primary-600">
-                        {formatPercent(stock.allocation)}
+
+                    {/* 보유 정보 입력 폼 */}
+                    {isEditing && (
+                      <div className="mt-4 p-4 bg-white border-2 border-primary-400 rounded-lg">
+                        <h4 className="font-semibold text-gray-900 mb-3">보유 정보 입력</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              보유 수량
+                            </label>
+                            <input
+                              type="number"
+                              value={editValues.shares}
+                              onChange={(e) => setEditValues({ ...editValues, shares: e.target.value })}
+                              placeholder="예: 10"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              매수가 (원)
+                            </label>
+                            <input
+                              type="number"
+                              value={editValues.buyPrice}
+                              onChange={(e) => setEditValues({ ...editValues, buyPrice: e.target.value })}
+                              placeholder="예: 100000"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            onClick={() => handleEditSave(stock.ticker)}
+                            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            저장
+                          </button>
+                          <button
+                            onClick={handleEditCancel}
+                            className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            취소
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">비중</div>
+                    )}
+
+                    {/* 손익 정보 표시 */}
+                    {profitData && !isEditing && (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-600">보유수량</p>
+                            <p className="text-sm font-semibold text-gray-900">{profitData.shares}주</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">매수가</p>
+                            <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(profitData.buyPrice))}원</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">평가금액</p>
+                            <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(profitData.currentValue))}원</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">평가손익</p>
+                            <p className={`text-sm font-bold ${profitData.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {profitData.profit >= 0 ? '+' : ''}{formatCurrency(Math.round(profitData.profit))}원
+                              <span className="ml-1 text-xs">({profitData.profitPercent >= 0 ? '+' : ''}{profitData.profitPercent.toFixed(2)}%)</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t">
+                      <div>
+                        <p className="text-xs text-gray-500">현재가</p>
+                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
+                      </div>
+                      {stock.previousClose && (
+                        <div>
+                          <p className="text-xs text-gray-500">전일종가</p>
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
+                        </div>
+                      )}
+                      {stock.dayHigh && stock.dayLow && (
+                        <div>
+                          <p className="text-xs text-gray-500">일일 범위</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
+                          </p>
+                        </div>
+                      )}
+                      {stock.per && (
+                        <div>
+                          <p className="text-xs text-gray-500">PER</p>
+                          <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
+                        </div>
+                      )}
+                      {stock.priceToBook && (
+                        <div>
+                          <p className="text-xs text-gray-500">PBR</p>
+                          <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
+                        </div>
+                      )}
+                      {stock.dividendYield && (
+                        <div>
+                          <p className="text-xs text-gray-500">배당수익률</p>
+                          <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
+                        </div>
+                      )}
+                      {stock.marketCap && (
+                        <div>
+                          <p className="text-xs text-gray-500">시가총액</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {(stock.marketCap / 1000000000000).toFixed(1)}조원
+                          </p>
+                        </div>
+                      )}
+                      {stock.volume && (
+                        <div>
+                          <p className="text-xs text-gray-500">거래량</p>
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.volume)}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t">
-                    <div>
-                      <p className="text-xs text-gray-500">현재가</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
-                    </div>
-                    {stock.previousClose && (
-                      <div>
-                        <p className="text-xs text-gray-500">전일종가</p>
-                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
-                      </div>
-                    )}
-                    {stock.dayHigh && stock.dayLow && (
-                      <div>
-                        <p className="text-xs text-gray-500">일일 범위</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
-                        </p>
-                      </div>
-                    )}
-                    {stock.per && (
-                      <div>
-                        <p className="text-xs text-gray-500">PER</p>
-                        <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
-                      </div>
-                    )}
-                    {stock.priceToBook && (
-                      <div>
-                        <p className="text-xs text-gray-500">PBR</p>
-                        <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
-                      </div>
-                    )}
-                    {stock.dividendYield && (
-                      <div>
-                        <p className="text-xs text-gray-500">배당수익률</p>
-                        <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
-                      </div>
-                    )}
-                    {stock.marketCap && (
-                      <div>
-                        <p className="text-xs text-gray-500">시가총액</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {(stock.marketCap / 1000000000000).toFixed(1)}조원
-                        </p>
-                      </div>
-                    )}
-                    {stock.volume && (
-                      <div>
-                        <p className="text-xs text-gray-500">거래량</p>
-                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.volume)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -386,6 +795,29 @@ const Results = ({ surveyData, onBack }) => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* MPT Analysis Section */}
+        <div className="mb-8">
+          <MPTAnalysis portfolio={result.portfolio} />
+        </div>
+
+        {/* Backtesting Section */}
+        <div className="mb-8">
+          <Backtesting portfolio={result.portfolio} />
+        </div>
+
+        {/* News Sentiment Section */}
+        <div className="mb-8">
+          <NewsSentiment portfolio={result.portfolio} />
+        </div>
+
+        {/* AI Recommendations Section */}
+        <div className="mb-8">
+          <Recommendations
+            portfolio={result.portfolio}
+            riskTolerance={surveyData?.riskTolerance || 'moderate'}
+          />
         </div>
 
         {/* Summary Section */}
