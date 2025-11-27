@@ -1,7 +1,7 @@
 // Yahoo Finance API 유틸리티 (백엔드 프록시 사용)
 
 // 백엔드 API URL
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`;
 
 // 로컬 스토리지 키 (브라우저 측 추가 캐싱용)
 const CACHE_KEY = 'stock_data_cache';
