@@ -1,12 +1,13 @@
 name: Deploy to Vercel and Railway
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # 수동 실행만 허용
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 jobs:
   # Frontend deployment to Vercel
