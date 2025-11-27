@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Newspaper, TrendingUp, TrendingDown, Minus, ExternalLink, Loader2 } from 'lucide-react';
+import { Newspaper, TrendingUp, TrendingDown, Minus, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const NewsSentiment = ({ portfolio }) => {
   const [sentimentData, setSentimentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [expandedStocks, setExpandedStocks] = useState({});
 
   useEffect(() => {
     const fetchNewsSentiment = async () => {
@@ -112,140 +113,153 @@ const NewsSentiment = ({ portfolio }) => {
     return null;
   }
 
+  const toggleStock = (ticker) => {
+    setExpandedStocks(prev => ({
+      ...prev,
+      [ticker]: !prev[ticker]
+    }));
+  };
+
   return (
-    <div className="space-y-8 animate-fadeInUp">
-      {/* 헤더 */}
-      <div className="relative bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="space-y-6 animate-fadeInUp">
+      {/* 헤더 - 컴팩트 버전 */}
+      <div className="relative bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl shadow-lg overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-5"></div>
-        <div className="relative p-8 md:p-10">
-          <div className="flex items-center mb-4">
-            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl p-3 mr-4">
-              <Newspaper className="h-8 w-8 text-white" />
+        <div className="relative p-6">
+          <div className="flex items-center">
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-2 mr-3">
+              <Newspaper className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white">뉴스 감성 분석</h2>
-              <p className="text-purple-100 text-sm md:text-base mt-1">
-                AI 키워드 기반 감성 분석으로 시장 심리 파악
+              <h2 className="text-2xl font-bold text-white">뉴스 감성 분석</h2>
+              <p className="text-purple-100 text-sm mt-0.5">
+                AI 키워드 기반 시장 심리 분석
               </p>
             </div>
           </div>
         </div>
-        {/* 장식 요소 */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
       </div>
 
-      {/* 전체 감성 요약 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 전체 감성 요약 - 컴팩트 버전 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sentimentData.map((stock) => (
           <div
             key={stock.ticker}
-            className={`group rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 border-2 transform hover:-translate-y-1 ${getSentimentColor(stock.overall_sentiment)}`}
+            className={`group rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-4 border-2 cursor-pointer ${getSentimentColor(stock.overall_sentiment)}`}
+            onClick={() => toggleStock(stock.ticker)}
           >
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">{stock.stock_name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{stock.ticker}</p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-gray-900 truncate">{stock.stock_name}</h3>
+                <p className="text-xs text-gray-500">{stock.ticker}</p>
               </div>
-              <div className={`p-3 rounded-xl transition-transform group-hover:scale-110 ${
-                stock.overall_sentiment === 'positive' ? 'bg-green-100' :
-                stock.overall_sentiment === 'negative' ? 'bg-red-100' : 'bg-gray-100'
-              }`}>
-                {getSentimentIcon(stock.overall_sentiment)}
+              <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-lg ${
+                  stock.overall_sentiment === 'positive' ? 'bg-green-100' :
+                  stock.overall_sentiment === 'negative' ? 'bg-red-100' : 'bg-gray-100'
+                }`}>
+                  {getSentimentIcon(stock.overall_sentiment)}
+                </div>
+                {expandedStocks[stock.ticker] ?
+                  <ChevronUp className="h-4 w-4 text-gray-500" /> :
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                }
               </div>
             </div>
 
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-700">전체 감성</span>
-                <span className="font-bold text-base">{getSentimentLabel(stock.overall_sentiment)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm font-medium text-gray-700">감성 점수</span>
-                <span className="font-bold text-base">{stock.overall_score.toFixed(2)}</span>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+              <span className="text-sm font-medium text-gray-700">감성 점수</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg">{stock.overall_score.toFixed(1)}</span>
+                <span className={`text-xs font-bold px-2 py-1 rounded ${
+                  stock.overall_sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                  stock.overall_sentiment === 'negative' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {getSentimentLabel(stock.overall_sentiment)}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-green-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-green-600">{stock.positive_count}</div>
-                <div className="text-xs text-green-700 mt-1">긍정</div>
+              <div className="bg-green-50 rounded-lg p-2 text-center">
+                <div className="text-lg font-bold text-green-600">{stock.positive_count}</div>
+                <div className="text-xs text-green-700">긍정</div>
               </div>
-              <div className="bg-red-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-red-600">{stock.negative_count}</div>
-                <div className="text-xs text-red-700 mt-1">부정</div>
+              <div className="bg-red-50 rounded-lg p-2 text-center">
+                <div className="text-lg font-bold text-red-600">{stock.negative_count}</div>
+                <div className="text-xs text-red-700">부정</div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-gray-600">{stock.neutral_count}</div>
-                <div className="text-xs text-gray-700 mt-1">중립</div>
+              <div className="bg-gray-50 rounded-lg p-2 text-center">
+                <div className="text-lg font-bold text-gray-600">{stock.neutral_count}</div>
+                <div className="text-xs text-gray-700">중립</div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 뉴스 상세 */}
+      {/* 뉴스 상세 - 접을 수 있는 버전 */}
       {sentimentData.map((stock) => (
-        <div key={`detail-${stock.ticker}`} className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-          <div className="flex items-center mb-8 pb-4 border-b-2 border-purple-100">
-            <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-3 mr-4">
-              <Newspaper className="h-6 w-6 text-purple-600" />
+        expandedStocks[stock.ticker] && (
+          <div key={`detail-${stock.ticker}`} className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 animate-fadeIn">
+            <div className="flex items-center mb-5 pb-3 border-b border-purple-100">
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-2 mr-3">
+                <Newspaper className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">{stock.stock_name} 뉴스</h3>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{stock.stock_name} 뉴스</h3>
-          </div>
 
-          {stock.news && stock.news.length > 0 ? (
-            <div className="space-y-4">
-              {stock.news.map((news, index) => (
-                <div
-                  key={index}
-                  className="group border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-r from-white to-gray-50"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={news.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-900 font-semibold text-base hover:text-purple-600 transition-colors flex items-start gap-2 group"
-                      >
-                        <span className="flex-1 line-clamp-2">{news.title}</span>
-                        <ExternalLink className="h-4 w-4 flex-shrink-0 mt-1 text-gray-400 group-hover:text-purple-600 transition-colors" />
-                      </a>
-                      <div className="flex items-center gap-2 mt-3">
-                        <span className="text-sm text-gray-500">{news.date}</span>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-xs text-gray-400">감성 점수: {news.score?.toFixed(2) || '0.00'}</span>
+            {stock.news && stock.news.length > 0 ? (
+              <div className="space-y-3">
+                {stock.news.map((news, index) => (
+                  <div
+                    key={index}
+                    className="group border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-purple-300 transition-all duration-200 bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <a
+                          href={news.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-900 font-medium text-sm hover:text-purple-600 transition-colors flex items-start gap-2 group"
+                        >
+                          <span className="flex-1 line-clamp-2">{news.title}</span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0 mt-0.5 text-gray-400 group-hover:text-purple-600 transition-colors" />
+                        </a>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-gray-500">{news.date}</span>
+                          <span className="text-gray-300">•</span>
+                          <span className="text-xs text-gray-400">점수: {news.score?.toFixed(1) || '0.0'}</span>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getSentimentColor(news.sentiment)}`}
+                        >
+                          {getSentimentLabel(news.sentiment)}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex-shrink-0">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 shadow-sm transition-all duration-200 group-hover:scale-105 ${getSentimentColor(news.sentiment)}`}
-                      >
-                        {getSentimentIcon(news.sentiment)}
-                        {getSentimentLabel(news.sentiment)}
-                      </span>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="inline-block bg-gray-100 rounded-full p-4 mb-4">
-                <Newspaper className="h-8 w-8 text-gray-400" />
+                ))}
               </div>
-              <p className="text-gray-500 font-medium">뉴스가 없습니다.</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="inline-block bg-gray-100 rounded-full p-3 mb-3">
+                  <Newspaper className="h-6 w-6 text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-500">뉴스가 없습니다.</p>
+              </div>
+            )}
+          </div>
+        )
       ))}
 
-      {/* 안내 문구 */}
-      <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
-        <p className="text-sm text-amber-900">
-          <strong>참고:</strong> 이 감성 분석은 AI 키워드 기반 분석으로, 참고용으로만 활용하시기 바랍니다.
-          실제 투자 결정 시에는 다양한 정보를 종합적으로 고려하세요.
+      {/* 안내 문구 - 컴팩트 버전 */}
+      <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+        <p className="text-xs text-amber-900">
+          <strong>참고:</strong> AI 키워드 기반 분석 결과이며 참고용입니다. 투자 결정 시 다양한 정보를 종합적으로 고려하세요.
         </p>
       </div>
     </div>

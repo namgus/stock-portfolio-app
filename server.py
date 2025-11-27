@@ -18,7 +18,17 @@ from news_sentiment import NewsSentimentAnalyzer
 from hybrid_recommender import HybridRecommender
 
 app = Flask(__name__)
-CORS(app)
+
+# CORS 설정 - 환경 변수에서 허용할 origin 가져오기
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 # 캐시 파일 경로
 CACHE_FILE = 'stock_cache.json'
@@ -728,12 +738,18 @@ def get_popular_recommendations():
 
 
 if __name__ == '__main__':
-    print('\n🚀 pykrx 주식 시세 API 서버 실행 중: http://localhost:3001')
-    print('📊 주식 데이터 API: http://localhost:3001/api/stocks?tickers=005930,035420')
-    print('💾 캐시 상태: http://localhost:3001/api/cache/status')
-    print('📈 MPT 분석: POST http://localhost:3001/api/mpt/analyze')
-    print('🔄 백테스팅: POST http://localhost:3001/api/backtest')
-    print('📰 뉴스 감성: POST http://localhost:3001/api/news/sentiment')
-    print('🤖 AI 추천: POST http://localhost:3001/api/recommendations/hybrid\n')
+    # 환경 변수에서 포트 및 디버그 모드 설정
+    port = int(os.getenv('PORT', 3001))
+    debug = os.getenv('FLASK_ENV', 'development') == 'development'
 
-    app.run(host='0.0.0.0', port=3001, debug=True)
+    print(f'\n🚀 pykrx 주식 시세 API 서버 실행 중: http://localhost:{port}')
+    print(f'📊 주식 데이터 API: http://localhost:{port}/api/stocks?tickers=005930,035420')
+    print(f'💾 캐시 상태: http://localhost:{port}/api/cache/status')
+    print(f'📈 MPT 분석: POST http://localhost:{port}/api/mpt/analyze')
+    print(f'🔄 백테스팅: POST http://localhost:{port}/api/backtest')
+    print(f'📰 뉴스 감성: POST http://localhost:{port}/api/news/sentiment')
+    print(f'🤖 AI 추천: POST http://localhost:{port}/api/recommendations/hybrid')
+    print(f'🌍 Environment: {os.getenv("FLASK_ENV", "development")}')
+    print(f'🔒 Allowed Origins: {", ".join(ALLOWED_ORIGINS)}\n')
+
+    app.run(host='0.0.0.0', port=port, debug=debug)
