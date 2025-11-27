@@ -19,20 +19,17 @@ from hybrid_recommender import HybridRecommender
 
 app = Flask(__name__)
 
-# CORS 설정 - 환경 변수에서 허용할 origin 가져오기
-ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
-
-# 프로덕션 환경에서는 모든 Vercel 도메인 허용
+# CORS 설정 - 프로덕션에서는 모든 origin 허용, 개발에서는 localhost만
 if os.getenv('FLASK_ENV') == 'production':
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["https://*.vercel.app", "https://vercel.app"] + ALLOWED_ORIGINS,
+            "origins": "*",  # 프로덕션에서는 모든 origin 허용
             "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"],
-            "supports_credentials": True
+            "allow_headers": ["Content-Type"]
         }
     })
 else:
+    ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
     CORS(app, resources={
         r"/api/*": {
             "origins": ALLOWED_ORIGINS,
