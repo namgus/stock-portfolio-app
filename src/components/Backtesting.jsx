@@ -33,7 +33,8 @@ const Backtesting = ({ portfolio }) => {
         console.log('백테스팅 시작:', tickers, weights);
 
         // 백테스팅 API 호출
-        const response = await fetch('http://localhost:3001/api/backtest', {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${API_URL}/api/backtest`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

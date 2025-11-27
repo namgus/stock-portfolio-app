@@ -29,7 +29,8 @@ const MPTAnalysis = ({ portfolio }) => {
         console.log('MPT 분석 시작:', tickers);
 
         // MPT API 호출
-        const response = await fetch('http://localhost:3001/api/mpt/analyze', {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${API_URL}/api/mpt/analyze`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
