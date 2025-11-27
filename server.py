@@ -21,14 +21,26 @@ app = Flask(__name__)
 
 # CORS 설정 - 환경 변수에서 허용할 origin 가져오기
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174').split(',')
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "supports_credentials": True
-    }
-})
+
+# 프로덕션 환경에서는 모든 Vercel 도메인 허용
+if os.getenv('FLASK_ENV') == 'production':
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["https://*.vercel.app", "https://vercel.app"] + ALLOWED_ORIGINS,
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+            "supports_credentials": True
+        }
+    })
+else:
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ALLOWED_ORIGINS,
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+            "supports_credentials": True
+        }
+    })
 
 # 캐시 파일 경로
 CACHE_FILE = 'stock_cache.json'
