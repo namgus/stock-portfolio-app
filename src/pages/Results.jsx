@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { TrendingUp, Shield, DollarSign, PieChart as PieChartIcon, ArrowLeft, AlertCircle, Loader2, RefreshCw, Edit3, Save, X } from 'lucide-react';
+import { TrendingUp, Shield, DollarSign, PieChart as PieChartIcon, ArrowLeft, AlertCircle, Loader2, RefreshCw, Edit3, Save, X, Settings } from 'lucide-react';
 import { generatePortfolio } from '../utils/portfolioRecommendation';
 import { fetchStockData, getCacheStatus, clearCache } from '../utils/yahooFinanceApi';
 import { extractStockCodes, updatePortfolioWithYahooData } from '../data/stockData';
@@ -9,9 +9,21 @@ import Backtesting from '../components/Backtesting';
 import NewsSentiment from '../components/NewsSentiment';
 import Recommendations from '../components/Recommendations';
 
-const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+// 모던하고 트렌디한 색상 팔레트 (그라데이션 효과를 위한 색상)
+const COLORS = [
+  '#6366f1', // Indigo
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#f59e0b', // Amber
+  '#10b981', // Emerald
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#a855f7', // Purple
+  '#14b8a6'  // Teal
+];
 
-const Results = ({ surveyData, onBack }) => {
+const Results = ({ surveyData, onBack, onEditSettings }) => {
   const initialResult = useMemo(() => generatePortfolio(surveyData), [surveyData]);
   const [result, setResult] = useState(initialResult);
   const [loading, setLoading] = useState(false);
@@ -36,6 +48,8 @@ const Results = ({ surveyData, onBack }) => {
     return saved ? parseInt(saved) : 60; // 기본 60초
   });
 
+  // 백엔드 서버는 항상 실행 중이므로 워밍업 불필요
+
   // 주식 시세 데이터 로드 (pykrx 사용)
   useEffect(() => {
     const loadStockPrices = async () => {
@@ -45,12 +59,13 @@ const Results = ({ surveyData, onBack }) => {
 
         console.log('주식 시세 데이터 로딩 중 (pykrx)...', stockCodes);
 
-        // 캐시 상태 확인 (async)
-        const cacheStatus = await getCacheStatus();
-        setCacheInfo(cacheStatus);
+        // 캐시 상태 확인 및 데이터 가져오기를 동시에 실행
+        const [cacheStatus, yahooData] = await Promise.all([
+          getCacheStatus(),
+          fetchStockData(stockCodes)
+        ]);
 
-        // 데이터 가져오기 (캐시 우선)
-        const yahooData = await fetchStockData(stockCodes);
+        setCacheInfo(cacheStatus);
 
         if (yahooData && Object.keys(yahooData).length > 0) {
           console.log('받은 API 데이터:', yahooData);
@@ -63,14 +78,12 @@ const Results = ({ surveyData, onBack }) => {
             portfolio: updatedPortfolio
           });
 
-          // 업데이트 시간 설정
-          const status = await getCacheStatus();
-          setLastUpdated(status.timestamp || new Date().toLocaleString('ko-KR'));
-          setCacheInfo(status);
+          // 업데이트 시간 설정 (이미 가져온 cacheStatus 사용)
+          setLastUpdated(cacheStatus.timestamp || new Date().toLocaleString('ko-KR'));
 
           console.log('주식 시세 데이터 로드 완료:', Object.keys(yahooData).length, '개 종목');
         } else {
-          console.warn('API 데이터가 비어있습니다. 샘플 데이터를 사용합니다.');
+          console.warn('API 데이터가 비어있습니다.');
         }
       } catch (error) {
         console.error('백엔드 API 데이터 로드 실패:', error);
@@ -270,13 +283,24 @@ const Results = ({ surveyData, onBack }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            처음으로 돌아가기
-          </button>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={onBack}
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              처음으로 돌아가기
+            </button>
+            {onEditSettings && (
+              <button
+                onClick={onEditSettings}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
+              >
+                <Settings className="w-4 h-4" />
+                설정 변경
+              </button>
+            )}
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
@@ -489,36 +513,68 @@ const Results = ({ surveyData, onBack }) => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Portfolio Chart */}
-          <div className="lg:col-span-1 bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">포트폴리오 구성</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${value.toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2">
-              {chartData.map((item, index) => (
-                <div key={index} className="flex items-center">
-                  <div
-                    className="w-4 h-4 rounded mr-2"
-                    style={{ backgroundColor: item.color }}
+          <div className="lg:col-span-1 bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-lg p-6 border border-purple-100">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-2 mr-3 shadow-md">
+                <PieChartIcon className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                포트폴리오 구성
+              </h2>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-inner">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <defs>
+                    {chartData.map((entry, index) => (
+                      <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
+                        <stop offset="100%" stopColor={entry.color} stopOpacity={0.7} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${value.toFixed(0)}%`}
+                    outerRadius={90}
+                    innerRadius={50}
+                    fill="#8884d8"
+                    dataKey="value"
+                    paddingAngle={2}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={`url(#gradient-${index})`}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => `${value.toFixed(1)}%`}
+                    contentStyle={{
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
                   />
-                  <span className="text-sm text-gray-700 flex-1">{item.name}</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-6 space-y-2.5">
+              {chartData.map((item, index) => (
+                <div key={index} className="group flex items-center bg-white rounded-lg p-2.5 hover:shadow-md transition-all duration-200 border border-transparent hover:border-purple-200">
+                  <div
+                    className="w-5 h-5 rounded-md mr-3 shadow-sm group-hover:shadow-md transition-shadow"
+                    style={{ background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)` }}
+                  />
+                  <span className="text-sm text-gray-700 flex-1 font-medium">{item.name}</span>
+                  <span className="text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {formatPercent(item.value)}
                   </span>
                 </div>
@@ -526,41 +582,71 @@ const Results = ({ surveyData, onBack }) => {
             </div>
 
             {/* 섹터별 분산도 차트 */}
-            <div className="mt-8 pt-8 border-t">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">섹터별 분산도</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={sectorData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name} ${value.toFixed(0)}%`}
-                    outerRadius={70}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {sectorData.map((entry, index) => (
-                      <Cell key={`sector-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value, name, props) => [
-                      `${value.toFixed(1)}% (${props.payload.stocks.join(', ')})`,
-                      name
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="mt-8 pt-8 border-t border-purple-200">
+              <div className="flex items-center mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg p-1.5 mr-2 shadow-sm">
+                  <Shield className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  섹터별 분산도
+                </h3>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-inner">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <defs>
+                      {sectorData.map((entry, index) => (
+                        <linearGradient key={`sector-gradient-${index}`} id={`sector-gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
+                          <stop offset="100%" stopColor={entry.color} stopOpacity={0.7} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <Pie
+                      data={sectorData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ value }) => value >= 10 ? `${value.toFixed(0)}%` : ''}
+                      outerRadius={80}
+                      innerRadius={45}
+                      fill="#8884d8"
+                      dataKey="value"
+                      paddingAngle={2}
+                    >
+                      {sectorData.map((entry, index) => (
+                        <Cell
+                          key={`sector-${index}`}
+                          fill={`url(#sector-gradient-${index})`}
+                          stroke="white"
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name, props) => [
+                        `${value.toFixed(1)}% (${props.payload.stocks.join(', ')})`,
+                        name
+                      ]}
+                      contentStyle={{
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
               <div className="mt-4 space-y-2">
                 {sectorData.map((item, index) => (
-                  <div key={index} className="flex items-center">
+                  <div key={index} className="group flex items-center bg-white rounded-lg p-2 hover:shadow-md transition-all duration-200 border border-transparent hover:border-blue-200">
                     <div
-                      className="w-4 h-4 rounded mr-2"
-                      style={{ backgroundColor: item.color }}
+                      className="w-4 h-4 rounded mr-2.5 shadow-sm group-hover:shadow-md transition-shadow"
+                      style={{ background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)` }}
                     />
-                    <span className="text-sm text-gray-700 flex-1">{item.name}</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm text-gray-700 flex-1 font-medium">{item.name}</span>
+                    <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                       {formatPercent(item.value)}
                     </span>
                   </div>
@@ -697,54 +783,75 @@ const Results = ({ surveyData, onBack }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t">
                       <div>
                         <p className="text-xs text-gray-500">현재가</p>
-                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
+                        {stock.price ? (
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">로딩 중...</p>
+                        )}
                       </div>
-                      {stock.previousClose && (
-                        <div>
-                          <p className="text-xs text-gray-500">전일종가</p>
+                      <div>
+                        <p className="text-xs text-gray-500">전일종가</p>
+                        {stock.previousClose ? (
                           <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
-                        </div>
-                      )}
-                      {stock.dayHigh && stock.dayLow && (
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      {(stock.dayHigh && stock.dayLow) ? (
                         <div>
                           <p className="text-xs text-gray-500">일일 범위</p>
                           <p className="text-sm font-semibold text-gray-900">
                             {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
                           </p>
                         </div>
-                      )}
-                      {stock.per && (
+                      ) : (
                         <div>
-                          <p className="text-xs text-gray-500">PER</p>
+                          <p className="text-xs text-gray-500">일일 범위</p>
+                          <p className="text-sm text-gray-400">-</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs text-gray-500">PER</p>
+                        {stock.per ? (
                           <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
-                        </div>
-                      )}
-                      {stock.priceToBook && (
-                        <div>
-                          <p className="text-xs text-gray-500">PBR</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">PBR</p>
+                        {stock.priceToBook ? (
                           <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
-                        </div>
-                      )}
-                      {stock.dividendYield && (
-                        <div>
-                          <p className="text-xs text-gray-500">배당수익률</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">배당수익률</p>
+                        {stock.dividendYield ? (
                           <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
-                        </div>
-                      )}
-                      {stock.marketCap && (
-                        <div>
-                          <p className="text-xs text-gray-500">시가총액</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">시가총액</p>
+                        {stock.marketCap ? (
                           <p className="text-sm font-semibold text-gray-900">
                             {(stock.marketCap / 1000000000000).toFixed(1)}조원
                           </p>
-                        </div>
-                      )}
-                      {stock.volume && (
-                        <div>
-                          <p className="text-xs text-gray-500">거래량</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">거래량</p>
+                        {stock.volume ? (
                           <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.volume)}</p>
-                        </div>
-                      )}
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

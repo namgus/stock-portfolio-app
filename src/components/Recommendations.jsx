@@ -291,29 +291,29 @@ const Recommendations = ({ portfolio, riskTolerance = 'moderate' }) => {
 
                   {/* 점수 배지들 */}
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 ${getScoreColor(rec.hybrid_score)}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 ${getScoreColor(rec.hybrid_score || 0)}`}>
                       <Target className="h-4 w-4" />
-                      {getScoreLabel(rec.hybrid_score)} ({(rec.hybrid_score * 100).toFixed(0)}점)
+                      {getScoreLabel(rec.hybrid_score || 0)} ({((rec.hybrid_score || 0) * 100).toFixed(0)}점)
                     </span>
 
-                    {rec.content_score > 0 && (
+                    {(rec.content_score || 0) > 0 && (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         <TrendingUp className="h-3 w-3" />
-                        특징 유사도 {(rec.content_score * 100).toFixed(0)}%
+                        특징 유사도 {((rec.content_score || 0) * 100).toFixed(0)}%
                       </span>
                     )}
 
-                    {rec.cf_score > 0 && (
+                    {(rec.cf_score || 0) > 0 && (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
                         <Users className="h-3 w-3" />
-                        투자자 선호 {(rec.cf_score * 100).toFixed(0)}%
+                        투자자 선호 {((rec.cf_score || 0) * 100).toFixed(0)}%
                       </span>
                     )}
 
-                    {rec.popularity > 0 && (
+                    {(rec.popularity || 0) > 0 && (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-pink-50 text-pink-700 border border-pink-200">
                         <Sparkles className="h-3 w-3" />
-                        인기도 {(rec.popularity * 100).toFixed(0)}%
+                        인기도 {((rec.popularity || 0) * 100).toFixed(0)}%
                       </span>
                     )}
                   </div>
@@ -347,19 +347,19 @@ const Recommendations = ({ portfolio, riskTolerance = 'moderate' }) => {
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">
-                      {(rec.content_score * 100).toFixed(0)}
+                      {((rec.content_score || 0) * 100).toFixed(0)}
                     </div>
                     <div className="text-xs text-blue-700 mt-1">Content 점수</div>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <div className="text-2xl font-bold text-purple-600">
-                      {(rec.cf_score * 100).toFixed(0)}
+                      {((rec.cf_score || 0) * 100).toFixed(0)}
                     </div>
                     <div className="text-xs text-purple-700 mt-1">CF 점수</div>
                   </div>
                   <div className="text-center p-4 bg-pink-50 rounded-lg">
                     <div className="text-2xl font-bold text-pink-600">
-                      {(rec.popularity * 100).toFixed(0)}
+                      {((rec.popularity || 0) * 100).toFixed(0)}
                     </div>
                     <div className="text-xs text-pink-700 mt-1">인기도</div>
                   </div>

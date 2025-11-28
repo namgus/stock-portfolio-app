@@ -1,4 +1,5 @@
 // Yahoo Finance API 유틸리티 (백엔드 프록시 사용)
+import { fetchWithRetry } from './fetchWithRetry';
 
 // 백엔드 API URL
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`;
@@ -17,7 +18,19 @@ export const fetchStockData = async (tickers, forceRefresh = false) => {
 
     console.log('백엔드 API에서 주식 데이터 요청 중:', url);
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(
+      url,
+      {
+        method: 'GET',
+      },
+      {
+        maxRetries: 3,
+        timeout: 30000, // 30초 타임아웃
+        onRetry: (attempt, error) => {
+          console.log(`주식 데이터 재시도 ${attempt}/3:`, error.message);
+        }
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);
@@ -51,7 +64,19 @@ export const fetchStockData = async (tickers, forceRefresh = false) => {
  */
 export const getCacheStatus = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/cache/status`);
+    const response = await fetchWithRetry(
+      `${API_BASE_URL}/cache/status`,
+      {
+        method: 'GET',
+      },
+      {
+        maxRetries: 2,
+        timeout: 10000,
+        onRetry: (attempt, error) => {
+          console.log(`캐시 상태 확인 재시도 ${attempt}/2:`, error.message);
+        }
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);
@@ -74,9 +99,19 @@ export const getCacheStatus = async () => {
  */
 export const clearCache = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/cache`, {
-      method: 'DELETE'
-    });
+    const response = await fetchWithRetry(
+      `${API_BASE_URL}/cache`,
+      {
+        method: 'DELETE'
+      },
+      {
+        maxRetries: 2,
+        timeout: 10000,
+        onRetry: (attempt, error) => {
+          console.log(`캐시 초기화 재시도 ${attempt}/2:`, error.message);
+        }
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);

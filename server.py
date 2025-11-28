@@ -236,16 +236,30 @@ def get_stock_quote(ticker):
         return None
 
 def get_batch_stock_quotes(tickers):
-    """여러 종목 시세 데이터 일괄 가져오기"""
+    """여러 종목 시세 데이터 일괄 가져오기 (재시도 로직 포함)"""
     results = {}
+    max_retries = 2
 
     for ticker in tickers:
         print(f"[INFO] {ticker} 데이터 가져오는 중...")
-        data = get_stock_quote(ticker)
-        if data:
-            results[ticker] = data
+        data = None
+
+        # 재시도 로직
+        for attempt in range(max_retries):
+            data = get_stock_quote(ticker)
+            if data:
+                results[ticker] = data
+                break
+            elif attempt < max_retries - 1:
+                print(f"[경고] {ticker} 재시도 중... ({attempt + 1}/{max_retries - 1})")
+                time.sleep(0.5)  # 재시도 전 대기
+
+        if not data:
+            print(f"[에러] {ticker} 데이터 가져오기 최종 실패")
+
         time.sleep(0.1)  # API 호출 간격
 
+    print(f"[INFO] 총 {len(results)}/{len(tickers)}개 종목 데이터 로드 완료")
     return results
 
 @app.route('/api/stocks', methods=['GET'])

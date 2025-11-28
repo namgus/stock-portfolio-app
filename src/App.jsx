@@ -28,6 +28,11 @@ function App() {
     setPortfolioResult(null);
   };
 
+  const navigateToSettings = () => {
+    // 설정 변경 시 surveyData 유지한 채로 설문으로 돌아감
+    setCurrentPage('survey');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {currentPage === 'home' && (
@@ -40,12 +45,14 @@ function App() {
         <Survey
           onComplete={handleSurveyComplete}
           onBack={navigateToHome}
+          initialData={surveyData}
         />
       )}
       {currentPage === 'results' && (
         <Results
           surveyData={surveyData}
           onBack={navigateToHome}
+          onEditSettings={navigateToSettings}
         />
       )}
       {currentPage === 'myAssets' && (
