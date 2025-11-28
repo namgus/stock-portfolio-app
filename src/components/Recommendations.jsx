@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Users, Target, Loader2, ChevronDown, ChevronUp, BookOpen, Info, HelpCircle } from 'lucide-react';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const Recommendations = ({ portfolio, riskTolerance = 'moderate' }) => {
   const [recommendations, setRecommendations] = useState(null);
@@ -28,24 +29,29 @@ const Recommendations = ({ portfolio, riskTolerance = 'moderate' }) => {
         console.log('AI 추천 요청:', { tickers, riskTolerance });
 
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${API_URL}/api/recommendations/hybrid`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await fetchWithRetry(
+          `${API_URL}/api/recommendations/hybrid`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              portfolio: tickers,
+              riskTolerance: riskTolerance,
+              topK: 5
+            }),
           },
-          body: JSON.stringify({
-            portfolio: tickers,
-            riskTolerance: riskTolerance,
-            topK: 5
-          }),
-        });
+          {
+            maxRetries: 3,
+            timeout: 15000,
+            onRetry: (attempt, error) => {
+              console.log(`AI 추천 재시도 ${attempt}/3:`, error.message);
+            }
+          }
+        );
 
         const data = await response.json();
-
-        if (!response.ok) {
-          console.error('API 에러 응답:', data);
-          throw new Error(data.error || 'AI 추천 API 호출 실패');
-        }
 
         console.log('AI 추천 결과:', data);
         setRecommendations(data.recommendations);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ZAxis } from 'recharts';
 import { TrendingUp, Activity, Award, Loader2, HelpCircle, Info, BookOpen } from 'lucide-react';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const MPTAnalysis = ({ portfolio }) => {
   const [mptData, setMptData] = useState(null);
@@ -28,19 +29,25 @@ const MPTAnalysis = ({ portfolio }) => {
 
         console.log('MPT 분석 시작:', tickers);
 
-        // MPT API 호출
+        // MPT API 호출 (retry logic 포함)
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${API_URL}/api/mpt/analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await fetchWithRetry(
+          `${API_URL}/api/mpt/analyze`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tickers }),
           },
-          body: JSON.stringify({ tickers }),
-        });
-
-        if (!response.ok) {
-          throw new Error('MPT 분석 API 호출 실패');
-        }
+          {
+            maxRetries: 3,
+            timeout: 15000,
+            onRetry: (attempt, error) => {
+              console.log(`MPT 분석 재시도 ${attempt}/3:`, error.message);
+            }
+          }
+        );
 
         const data = await response.json();
         console.log('MPT 분석 결과:', data);

@@ -51,3 +51,4 @@ stock_cache.json
 
 # Railway
 .railway
+.env*.local

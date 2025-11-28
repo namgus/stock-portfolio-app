@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, DollarSign, Award, Target, Loader2, Calendar } from 'lucide-react';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const Backtesting = ({ portfolio }) => {
   const [backtestData, setBacktestData] = useState(null);
@@ -34,21 +35,27 @@ const Backtesting = ({ portfolio }) => {
 
         // 백테스팅 API 호출
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${API_URL}/api/backtest`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await fetchWithRetry(
+          `${API_URL}/api/backtest`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tickers,
+              weights,
+              initialInvestment: 10000000, // 1000만원
+            }),
           },
-          body: JSON.stringify({
-            tickers,
-            weights,
-            initialInvestment: 10000000, // 1000만원
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('백테스팅 API 호출 실패');
-        }
+          {
+            maxRetries: 3,
+            timeout: 15000,
+            onRetry: (attempt, error) => {
+              console.log(`백테스팅 재시도 ${attempt}/3:`, error.message);
+            }
+          }
+        );
 
         const data = await response.json();
         console.log('백테스팅 결과:', data);

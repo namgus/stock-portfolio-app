@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Newspaper, TrendingUp, TrendingDown, Minus, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const NewsSentiment = ({ portfolio }) => {
   const [sentimentData, setSentimentData] = useState(null);
@@ -27,20 +28,25 @@ const NewsSentiment = ({ portfolio }) => {
         console.log('뉴스 감성 분석 시작:', tickers);
 
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${API_URL}/api/news/sentiment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await fetchWithRetry(
+          `${API_URL}/api/news/sentiment`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tickers, maxNews: 10 }),
           },
-          body: JSON.stringify({ tickers, maxNews: 10 }),
-        });
+          {
+            maxRetries: 3,
+            timeout: 15000,
+            onRetry: (attempt, error) => {
+              console.log(`뉴스 감성 분석 재시도 ${attempt}/3:`, error.message);
+            }
+          }
+        );
 
         const data = await response.json();
-
-        if (!response.ok) {
-          console.error('API 에러 응답:', data);
-          throw new Error(data.error || '뉴스 감성 분석 API 호출 실패');
-        }
 
         console.log('뉴스 감성 분석 결과:', data);
         setSentimentData(data.results);
