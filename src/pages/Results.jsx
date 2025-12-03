@@ -283,10 +283,10 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:mb-6">
             <button
               onClick={onBack}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors p-2 sm:p-1"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               처음으로 돌아가기
@@ -294,7 +294,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
             {onEditSettings && (
               <button
                 onClick={onEditSettings}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
+                className="flex items-center gap-2 px-4 py-2.5 sm:px-4 sm:py-2 text-base sm:text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
               >
                 <Settings className="w-4 h-4" />
                 설정 변경
@@ -311,7 +311,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
             {loading && (
               <div className="flex items-center text-primary-600">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                <span className="text-sm">주식 시세 데이터 로딩 중...</span>
+                <span className="text-base sm:text-sm">주식 시세 데이터 로딩 중...</span>
               </div>
             )}
           </div>
@@ -319,7 +319,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           {/* 캐시 및 업데이트 정보 */}
           {lastUpdated && (
             <div className="mt-4 flex flex-wrap items-center gap-4">
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-base sm:text-sm text-gray-600">
                 <RefreshCw className="w-4 h-4 mr-1" />
                 <span>마지막 업데이트: {lastUpdated}</span>
                 {cacheInfo && cacheInfo.age !== null && (
@@ -331,7 +331,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
               <button
                 onClick={handleRefresh}
                 disabled={loading}
-                className="flex items-center px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center px-4 py-2 sm:px-3 sm:py-1 text-base sm:text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                 새로고침
@@ -350,7 +350,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                     <div className={`block w-10 h-6 rounded-full transition-colors ${autoRefresh ? 'bg-primary-600' : 'bg-gray-300'}`}></div>
                     <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${autoRefresh ? 'transform translate-x-4' : ''}`}></div>
                   </div>
-                  <span className="ml-2 text-sm text-gray-700">자동 새로고침</span>
+                  <span className="ml-2 text-base sm:text-sm text-gray-700">자동 새로고침</span>
                 </label>
                 {autoRefresh && (
                   <select
@@ -373,7 +373,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
             <div className="flex">
               <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
               <div className="ml-3">
-                <p className="text-sm text-blue-700">
+                <p className="text-base sm:text-sm text-blue-700">
                   pykrx 라이브러리를 통해 한국거래소(KRX)의 당일 시세 데이터를 가져옵니다.
                   장 마감 후(15:30) 최종 종가가 확정되며, 데이터는 서버에 캐시됩니다.
                   {cacheInfo && cacheInfo.isExpired && (
@@ -385,8 +385,8 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           </div>
         </div>
 
-        {/* Summary Cards - 애니메이션 추가 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-[fadeInUp_0.5s_ease-out]">
+        {/* 1. 포트폴리오 요약 카드 - Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-[fadeInUp_0.5s_ease-out]">
           <style>
             {`
               @keyframes fadeInUp {
@@ -421,10 +421,10 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
               }
             `}
           </style>
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">리스크 수준</p>
+                <p className="text-sm md:text-xs text-gray-600">리스크 수준</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{result.riskLevel.level}</p>
                 <p className="text-sm text-gray-500 mt-1">{result.riskLevel.description}</p>
               </div>
@@ -445,7 +445,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">예상 수익률 (연)</p>
@@ -460,7 +460,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">총 종목 수</p>
@@ -474,7 +474,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           </div>
 
           {/* 총 손익 카드 */}
-          <div className={`bg-white rounded-xl shadow-md p-6 ${totalStats.hasData ? 'ring-2 ring-primary-200' : ''}`}>
+          <div className={`bg-white rounded-xl shadow-md p-4 sm:p-6 ${totalStats.hasData ? 'ring-2 ring-primary-200' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">총 평가손익</p>
@@ -496,7 +496,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
               </div>
             </div>
             {totalStats.hasData && (
-              <div className="mt-4 pt-4 border-t text-xs text-gray-600">
+              <div className="mt-4 pt-4 border-t text-sm md:text-xs text-gray-600">
                 <div className="flex justify-between">
                   <span>평가금액</span>
                   <span className="font-semibold">{formatCurrency(Math.round(totalStats.totalCurrentValue))}원</span>
@@ -510,10 +510,10 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* 2. 포트폴리오 구성 + 추천 종목 상세 - Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8">
           {/* Portfolio Chart */}
-          <div className="lg:col-span-1 bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-lg p-6 border border-purple-100">
+          <div className="lg:col-span-1 bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-lg p-4 sm:p-6 border border-purple-100">
             <div className="flex items-center mb-6">
               <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-2 mr-3 shadow-md">
                 <PieChartIcon className="h-5 w-5 text-white" />
@@ -573,7 +573,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                     className="w-5 h-5 rounded-md mr-3 shadow-sm group-hover:shadow-md transition-shadow"
                     style={{ background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)` }}
                   />
-                  <span className="text-sm text-gray-700 flex-1 font-medium">{item.name}</span>
+                  <span className="text-sm text-gray-700 flex-1 font-medium truncate">{item.name}</span>
                   <span className="text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {formatPercent(item.value)}
                   </span>
@@ -645,7 +645,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                       className="w-4 h-4 rounded mr-2.5 shadow-sm group-hover:shadow-md transition-shadow"
                       style={{ background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}99 100%)` }}
                     />
-                    <span className="text-sm text-gray-700 flex-1 font-medium">{item.name}</span>
+                    <span className="text-sm text-gray-700 flex-1 font-medium truncate">{item.name}</span>
                     <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                       {formatPercent(item.value)}
                     </span>
@@ -656,8 +656,141 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           </div>
 
           {/* Stock List */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">추천 종목 상세</h2>
+            <div className="space-y-4">
+              {result.portfolio.map((stock, index) => {
+                return (
+                  <div
+                    key={index}
+                    className="border-2 rounded-lg p-4 transition-all border-gray-100 hover:border-primary-200 hover:bg-primary-50/30"
+                  >
+                    <div className="flex items-start justify-between mb-2 gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-bold text-gray-900 truncate">{stock.name}</h3>
+                          <span className="ml-3 text-sm text-gray-500">({stock.ticker})</span>
+                          {stock.lastUpdated && (
+                            <span className="ml-2 text-sm md:text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              실시간
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-none">{stock.description}</p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className="text-2xl font-bold text-primary-600">
+                          {formatPercent(stock.allocation)}
+                        </div>
+                        <div className="text-sm text-gray-500">비중</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-3 pt-3 border-t">
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">현재가</p>
+                        {stock.price ? (
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">로딩 중...</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">전일종가</p>
+                        {stock.previousClose ? (
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      {(stock.dayHigh && stock.dayLow) ? (
+                        <div>
+                          <p className="text-sm md:text-xs text-gray-500">일일 범위</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm md:text-xs text-gray-500">일일 범위</p>
+                          <p className="text-sm text-gray-400">-</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">PER</p>
+                        {stock.per ? (
+                          <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">PBR</p>
+                        {stock.priceToBook ? (
+                          <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">배당수익률</p>
+                        {stock.dividendYield ? (
+                          <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">시가총액</p>
+                        {stock.marketCap ? (
+                          <p className="text-sm font-semibold text-gray-900">
+                            {(stock.marketCap / 1000000000000).toFixed(1)}조원
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm md:text-xs text-gray-500">거래량</p>
+                        {stock.volume ? (
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.volume)}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400">-</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. 백테스팅 (Backtesting) */}
+        <div className="mb-8">
+          <Backtesting portfolio={result.portfolio} />
+        </div>
+
+        {/* 4. MPT 분석 (MPTAnalysis) */}
+        <div className="mb-8">
+          <MPTAnalysis portfolio={result.portfolio} />
+        </div>
+
+        {/* 5. 뉴스 감성 분석 (NewsSentiment) */}
+        <div className="mb-8">
+          <NewsSentiment portfolio={result.portfolio} />
+        </div>
+
+        {/* 6. 나의 투자 관리 (개인 자산 관리 + ISA 통합) */}
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-lg p-4 sm:p-6 md:p-8 mb-8 border border-purple-200">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center">
+            <DollarSign className="h-8 w-8 text-primary-600 mr-3" />
+            나의 투자 관리
+          </h2>
+
+          {/* Part 1: 개인 자산 관리 */}
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">개인 자산 관리</h3>
             <div className="space-y-4">
               {result.portfolio.map((stock, index) => {
                 const profitData = calculateProfit(stock);
@@ -675,27 +808,21 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center">
-                          <h3 className="text-lg font-bold text-gray-900">{stock.name}</h3>
-                          <span className="ml-3 text-sm text-gray-500">({stock.ticker})</span>
-                          {stock.lastUpdated && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                              실시간
-                            </span>
-                          )}
+                          <h4 className="text-base sm:text-lg font-bold text-gray-900">{stock.name}</h4>
+                          <span className="ml-3 text-base sm:text-sm text-gray-500">({stock.ticker})</span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{stock.description}</p>
                       </div>
                       <div className="text-right ml-4 flex items-center gap-2">
                         <div>
-                          <div className="text-2xl font-bold text-primary-600">
+                          <div className="text-xl font-bold text-primary-600">
                             {formatPercent(stock.allocation)}
                           </div>
-                          <div className="text-sm text-gray-500">비중</div>
+                          <div className="text-sm md:text-xs text-gray-500">추천 비중</div>
                         </div>
                         {!isEditing && (
                           <button
                             onClick={() => handleEditStart(stock.ticker)}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                            className="p-3 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
                             title="보유 정보 입력"
                           >
                             <Edit3 className="w-5 h-5 text-gray-600" />
@@ -707,7 +834,7 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                     {/* 보유 정보 입력 폼 */}
                     {isEditing && (
                       <div className="mt-4 p-4 bg-white border-2 border-primary-400 rounded-lg">
-                        <h4 className="font-semibold text-gray-900 mb-3">보유 정보 입력</h4>
+                        <h5 className="font-semibold text-gray-900 mb-3">보유 정보 입력</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -734,17 +861,17 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                             />
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-4">
+                        <div className="flex flex-col xs:flex-row gap-2 mt-4">
                           <button
                             onClick={() => handleEditSave(stock.ticker)}
-                            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                            className="flex items-center px-5 py-2.5 sm:px-4 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                           >
                             <Save className="w-4 h-4 mr-2" />
                             저장
                           </button>
                           <button
                             onClick={handleEditCancel}
-                            className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="flex items-center px-5 py-2.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                           >
                             <X className="w-4 h-4 mr-2" />
                             취소
@@ -756,170 +883,75 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
                     {/* 손익 정보 표시 */}
                     {profitData && !isEditing && (
                       <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                           <div>
-                            <p className="text-xs text-gray-600">보유수량</p>
+                            <p className="text-sm md:text-xs text-gray-600">보유수량</p>
                             <p className="text-sm font-semibold text-gray-900">{profitData.shares}주</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-600">매수가</p>
+                            <p className="text-sm md:text-xs text-gray-600">매수가</p>
                             <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(profitData.buyPrice))}원</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-600">평가금액</p>
+                            <p className="text-sm md:text-xs text-gray-600">평가금액</p>
                             <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(profitData.currentValue))}원</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-600">평가손익</p>
+                            <p className="text-sm md:text-xs text-gray-600">평가손익</p>
                             <p className={`text-sm font-bold ${profitData.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {profitData.profit >= 0 ? '+' : ''}{formatCurrency(Math.round(profitData.profit))}원
-                              <span className="ml-1 text-xs">({profitData.profitPercent >= 0 ? '+' : ''}{profitData.profitPercent.toFixed(2)}%)</span>
+                              <span className="ml-1 text-sm md:text-xs">({profitData.profitPercent >= 0 ? '+' : ''}{profitData.profitPercent.toFixed(2)}%)</span>
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 pt-3 border-t">
-                      <div>
-                        <p className="text-xs text-gray-500">현재가</p>
-                        {stock.price ? (
-                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.price))}원</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">로딩 중...</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">전일종가</p>
-                        {stock.previousClose ? (
-                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(Math.round(stock.previousClose))}원</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                      {(stock.dayHigh && stock.dayLow) ? (
-                        <div>
-                          <p className="text-xs text-gray-500">일일 범위</p>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(Math.round(stock.dayLow))} - {formatCurrency(Math.round(stock.dayHigh))}
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-xs text-gray-500">일일 범위</p>
-                          <p className="text-sm text-gray-400">-</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs text-gray-500">PER</p>
-                        {stock.per ? (
-                          <p className="text-sm font-semibold text-gray-900">{stock.per}</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">PBR</p>
-                        {stock.priceToBook ? (
-                          <p className="text-sm font-semibold text-gray-900">{stock.priceToBook}</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">배당수익률</p>
-                        {stock.dividendYield ? (
-                          <p className="text-sm font-semibold text-green-600">{stock.dividendYield}%</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">시가총액</p>
-                        {stock.marketCap ? (
-                          <p className="text-sm font-semibold text-gray-900">
-                            {(stock.marketCap / 1000000000000).toFixed(1)}조원
-                          </p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">거래량</p>
-                        {stock.volume ? (
-                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(stock.volume)}</p>
-                        ) : (
-                          <p className="text-sm text-gray-400">-</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
 
-        {/* ISA Tax Savings Section */}
-        <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-md p-8 mb-8">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-white" />
+          {/* Part 2: ISA 절세 계좌 */}
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+              <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center mr-3">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              ISA 절세 계좌
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">계좌 유형</h4>
+                <p className="text-lg text-primary-600 font-bold">{result.isaRecommendation.isaType}</p>
+                <p className="text-sm text-gray-600 mt-2">{result.isaRecommendation.recommendation}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">절세 혜택</h4>
+                <p className="text-sm text-gray-600 mb-2">
+                  수익금 <span className="font-bold text-green-600">{result.isaRecommendation.taxBenefit}만원</span>까지 비과세
+                </p>
+                <p className="text-sm text-gray-600">
+                  예상 연간 절세액: <span className="font-bold text-green-600">{result.isaRecommendation.estimatedTaxSavings}만원</span>
+                </p>
               </div>
             </div>
-            <div className="ml-4 flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">ISA 절세 계좌 추천</h2>
-              <div className="bg-white rounded-lg p-6 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">계좌 유형</h3>
-                    <p className="text-lg text-primary-600 font-bold">{result.isaRecommendation.isaType}</p>
-                    <p className="text-sm text-gray-600 mt-2">{result.isaRecommendation.recommendation}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">절세 혜택</h3>
-                    <p className="text-sm text-gray-600 mb-2">
-                      수익금 <span className="font-bold text-green-600">{result.isaRecommendation.taxBenefit}만원</span>까지 비과세
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      예상 연간 절세액: <span className="font-bold text-green-600">{result.isaRecommendation.estimatedTaxSavings}만원</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="font-semibold text-gray-900 mb-2">추천 계좌 구조</h3>
-                  <p className="text-gray-700">{result.isaRecommendation.accountStructure}</p>
-                  <div className="mt-3 bg-blue-50 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-blue-900 ml-2">
-                        배당 수익이 발생하는 종목은 ISA 계좌에 배치하면 세금 혜택을 극대화할 수 있습니다.
-                      </p>
-                    </div>
-                  </div>
+            <div className="pt-6 border-t">
+              <h4 className="font-semibold text-gray-900 mb-2">추천 계좌 구조</h4>
+              <p className="text-gray-700">{result.isaRecommendation.accountStructure}</p>
+              <div className="mt-3 bg-blue-50 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-blue-900 ml-2">
+                    배당 수익이 발생하는 종목은 ISA 계좌에 배치하면 세금 혜택을 극대화할 수 있습니다.
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* MPT Analysis Section */}
-        <div className="mb-8">
-          <MPTAnalysis portfolio={result.portfolio} />
-        </div>
-
-        {/* Backtesting Section */}
-        <div className="mb-8">
-          <Backtesting portfolio={result.portfolio} />
-        </div>
-
-        {/* News Sentiment Section */}
-        <div className="mb-8">
-          <NewsSentiment portfolio={result.portfolio} />
-        </div>
-
-        {/* AI Recommendations Section */}
+        {/* 7. AI 추천 (Recommendations) */}
         <div className="mb-8">
           <Recommendations
             portfolio={result.portfolio}
@@ -927,8 +959,8 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           />
         </div>
 
-        {/* Summary Section */}
-        <div className="bg-white rounded-xl shadow-md p-8">
+        {/* 8. 포트폴리오 총평 - Summary Section */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">포트폴리오 총평</h2>
           <p className="text-gray-700 leading-relaxed text-lg">{result.summary}</p>
           <div className="mt-6 pt-6 border-t">
