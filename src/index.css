@@ -7,3 +7,88 @@
     @apply bg-gray-50 text-gray-900 antialiased;
   }
 }
+
+/* 모바일 전용 개선사항 (640px 이하) */
+@media (max-width: 640px) {
+  /* 터치 친화적인 버튼 크기 */
+  button {
+    min-height: 44px;
+    font-size: 16px !important; /* iOS 자동 줌 방지 */
+  }
+
+  /* 입력 필드 개선 */
+  input, select, textarea {
+    font-size: 16px !important; /* iOS 자동 줌 방지 */
+    padding: 12px !important;
+  }
+
+  /* 카드 간격 조정 */
+  .space-y-4 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  /* 텍스트 가독성 개선 */
+  p, span {
+    line-height: 1.6;
+  }
+
+  /* 테이블 스크롤 개선 */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  /* 모달 풀스크린 */
+  .modal-content {
+    max-height: 100vh !important;
+    height: 100vh !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* 탭 버튼 크기 증가 */
+  .tab-button {
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+  }
+
+  /* 차트 컨테이너 높이 조정 */
+  .recharts-wrapper {
+    height: 250px !important;
+  }
+
+  /* 섹션 패딩 감소 */
+  section {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* 제목 크기 조정 */
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* 플로팅 버튼 위치 조정 */
+  .fixed.bottom-4.right-4 {
+    bottom: 20px !important;
+    right: 16px !important;
+  }
+
+  /* 스와이프 힌트 */
+  .swipe-hint {
+    display: block;
+    text-align: center;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+}

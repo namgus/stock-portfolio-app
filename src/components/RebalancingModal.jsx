@@ -14,6 +14,17 @@ const RebalancingModal = ({
 }) => {
   const [activeTab, setActiveTab] = useState('stocks'); // 'stocks', 'funds', 'isa'
 
+  // 디버깅용 콘솔 출력
+  console.log('RebalancingModal props:', {
+    isOpen,
+    portfolio,
+    portfolioData,
+    totalInvestment,
+    fundRecommendations,
+    isaRecommendations,
+    userProfile
+  });
+
   // 모달이 닫혀있으면 렌더링하지 않음
   if (!isOpen) return null;
 
@@ -78,7 +89,7 @@ const RebalancingModal = ({
     >
       {/* 모달 컨텐츠 */}
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}

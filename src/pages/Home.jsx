@@ -24,16 +24,16 @@ const Home = ({ onStart, onMyAssets }) => {
             간단한 질문에 답하고, AI가 분석한 개인화된 주식 포트폴리오와
             절세 전략을 받아보세요.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center px-4">
             <button
               onClick={onStart}
-              className="px-8 py-4 bg-primary-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-all duration-200 transform hover:scale-105"
+              className="w-full sm:w-auto px-8 py-5 bg-primary-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-all duration-200 transform hover:scale-105 min-h-[60px]"
             >
               포트폴리오 추천 시작하기
             </button>
             <button
               onClick={onMyAssets}
-              className="flex items-center justify-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-green-700 transition-all duration-200 transform hover:scale-105"
+              className="w-full sm:w-auto flex items-center justify-center px-8 py-5 bg-green-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-green-700 transition-all duration-200 transform hover:scale-105 min-h-[60px]"
             >
               <Wallet className="w-5 h-5 mr-2" />
               내 자산 보기
@@ -97,37 +97,37 @@ const Home = ({ onStart, onMyAssets }) => {
           <h3 className="text-3xl font-bold text-gray-900 text-center mb-12">
             어떻게 작동하나요?
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-600 text-white text-2xl font-bold">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
+            <div className="text-center p-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-600 text-white text-2xl sm:text-3xl font-bold">
                 1
               </div>
-              <h4 className="mt-4 text-xl font-semibold text-gray-900">
+              <h4 className="mt-4 text-xl sm:text-2xl font-semibold text-gray-900">
                 간단한 설문
               </h4>
-              <p className="mt-2 text-gray-600">
+              <p className="mt-2 text-gray-600 text-base sm:text-lg">
                 5개의 질문에 답하여 투자 성향을 파악합니다
               </p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-600 text-white text-2xl font-bold">
+            <div className="text-center p-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-600 text-white text-2xl sm:text-3xl font-bold">
                 2
               </div>
-              <h4 className="mt-4 text-xl font-semibold text-gray-900">
+              <h4 className="mt-4 text-xl sm:text-2xl font-semibold text-gray-900">
                 AI 분석
               </h4>
-              <p className="mt-2 text-gray-600">
+              <p className="mt-2 text-gray-600 text-base sm:text-lg">
                 시장 데이터를 분석하여 최적의 포트폴리오를 생성합니다
               </p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-600 text-white text-2xl font-bold">
+            <div className="text-center p-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-600 text-white text-2xl sm:text-3xl font-bold">
                 3
               </div>
-              <h4 className="mt-4 text-xl font-semibold text-gray-900">
+              <h4 className="mt-4 text-xl sm:text-2xl font-semibold text-gray-900">
                 결과 확인
               </h4>
-              <p className="mt-2 text-gray-600">
+              <p className="mt-2 text-gray-600 text-base sm:text-lg">
                 추천 종목과 비중, 절세 전략을 한눈에 확인하세요
               </p>
             </div>

@@ -54,6 +54,11 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
   // 리밸런싱 모달 상태
   const [isRebalancingModalOpen, setIsRebalancingModalOpen] = useState(false);
 
+  // 디버깅용 - 모달 상태 변경 감지
+  useEffect(() => {
+    console.log('isRebalancingModalOpen changed:', isRebalancingModalOpen);
+  }, [isRebalancingModalOpen]);
+
   // 백엔드 서버는 항상 실행 중이므로 워밍업 불필요
 
   // 주식 시세 데이터 로드 (pykrx 사용)
@@ -831,7 +836,17 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
               나의 투자 관리
             </h2>
             <button
-              onClick={() => setIsRebalancingModalOpen(true)}
+              onClick={() => {
+                console.log('리밸런싱 분석 버튼 클릭됨');
+                console.log('현재 데이터 상태:', {
+                  portfolio: result.portfolio,
+                  portfolioData,
+                  totalInvestment: totalStats.totalCurrentValue,
+                  fundRecommendations,
+                  isaRecommendations
+                });
+                setIsRebalancingModalOpen(true);
+              }}
               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
             >
               <TrendingUp className="h-5 w-5" />
