@@ -7,7 +7,6 @@ const RebalancingModal = ({
   onClose,
   portfolio,
   portfolioData,
-  stockPrices,
   totalInvestment,
   fundRecommendations,
   isaRecommendations,

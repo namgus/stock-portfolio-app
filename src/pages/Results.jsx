@@ -1037,7 +1037,6 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
         onClose={() => setIsRebalancingModalOpen(false)}
         portfolio={result.portfolio}
         portfolioData={portfolioData}
-        stockPrices={stockPrices}
         totalInvestment={totalStats.totalCurrentValue}
         fundRecommendations={fundRecommendations}
         isaRecommendations={isaRecommendations}
