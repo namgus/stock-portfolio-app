@@ -8,6 +8,8 @@ import MPTAnalysis from '../components/MPTAnalysis';
 import Backtesting from '../components/Backtesting';
 import NewsSentiment from '../components/NewsSentiment';
 import Recommendations from '../components/Recommendations';
+import RebalancingModal from '../components/RebalancingModal';
+import { recommendBankFunds, recommendISAETFs } from '../utils/productRecommendation';
 
 // 모던하고 트렌디한 색상 팔레트 (그라데이션 효과를 위한 색상)
 const COLORS = [
@@ -47,6 +49,9 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
     const saved = localStorage.getItem('refreshInterval');
     return saved ? parseInt(saved) : 60; // 기본 60초
   });
+
+  // 리밸런싱 모달 상태
+  const [isRebalancingModalOpen, setIsRebalancingModalOpen] = useState(false);
 
   // 백엔드 서버는 항상 실행 중이므로 워밍업 불필요
 
@@ -231,6 +236,35 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
       hasData: totalPurchaseValue > 0
     };
   }, [result.portfolio, portfolioData]);
+
+  // 펀드 추천 계산
+  const fundRecommendations = useMemo(() => {
+    if (!totalStats.hasData || totalStats.totalCurrentValue === 0) return [];
+
+    return recommendBankFunds(
+      {
+        riskTolerance: result.riskTolerance || surveyData.riskTolerance,
+        investmentPeriod: surveyData.investmentPeriod,
+        preferredSectors: surveyData.preferredSectors
+      },
+      totalStats.totalCurrentValue
+    );
+  }, [result, surveyData, totalStats]);
+
+  // ISA ETF 추천 계산
+  const isaRecommendations = useMemo(() => {
+    if (!totalStats.hasData || totalStats.totalCurrentValue === 0) return null;
+
+    // ISA 한도: 연 2,000만원, 총 투자금의 50%를 ISA로 추천
+    const isaAmount = Math.min(20000000, totalStats.totalCurrentValue * 0.5);
+
+    return recommendISAETFs(
+      {
+        riskTolerance: result.riskTolerance || surveyData.riskTolerance
+      },
+      isaAmount
+    );
+  }, [result, surveyData, totalStats]);
 
   const chartData = result.portfolio.map((stock, index) => ({
     name: stock.name,
@@ -783,10 +817,20 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
 
         {/* 6. 나의 투자 관리 (개인 자산 관리 + ISA 통합) */}
         <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-lg p-4 sm:p-6 md:p-8 mb-8 border border-purple-200">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center">
-            <DollarSign className="h-8 w-8 text-primary-600 mr-3" />
-            나의 투자 관리
-          </h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+              <DollarSign className="h-8 w-8 text-primary-600 mr-3" />
+              나의 투자 관리
+            </h2>
+            <button
+              onClick={() => setIsRebalancingModalOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <TrendingUp className="h-5 w-5" />
+              <span className="hidden sm:inline">리밸런싱 분석</span>
+              <span className="sm:hidden">분석</span>
+            </button>
+          </div>
 
           {/* Part 1: 개인 자산 관리 */}
           <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6">
@@ -985,6 +1029,22 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
           </div>
         </div>
       </div>
+
+      {/* 리밸런싱 모달 */}
+      <RebalancingModal
+        isOpen={isRebalancingModalOpen}
+        onClose={() => setIsRebalancingModalOpen(false)}
+        portfolio={result.portfolio}
+        portfolioData={portfolioData}
+        stockPrices={stockPrices}
+        totalInvestment={totalStats.totalCurrentValue}
+        fundRecommendations={fundRecommendations}
+        isaRecommendations={isaRecommendations}
+        userProfile={{
+          riskTolerance: result.riskTolerance || surveyData.riskTolerance,
+          investmentPeriod: surveyData.investmentPeriod
+        }}
+      />
     </div>
   );
 };
