@@ -3,9 +3,10 @@ import Home from './pages/Home';
 import Survey from './pages/Survey';
 import Results from './pages/Results';
 import MyAssets from './pages/MyAssets';
+import Debug from './pages/Debug';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('home'); // 정상 모드로 복구
   const [surveyData, setSurveyData] = useState(null);
   const [portfolioResult, setPortfolioResult] = useState(null);
 
@@ -57,6 +58,9 @@ function App() {
       )}
       {currentPage === 'myAssets' && (
         <MyAssets onBack={navigateToHome} />
+      )}
+      {currentPage === 'debug' && (
+        <Debug />
       )}
     </div>
   );
