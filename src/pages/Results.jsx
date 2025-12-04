@@ -10,7 +10,7 @@ import NewsSentiment from '../components/NewsSentiment';
 import Recommendations from '../components/Recommendations';
 import RebalancingModal from '../components/RebalancingModal';
 import productRecommendation from '../utils/productRecommendation';
-const { recommendBankFunds, recommendISAETFs } = productRecommendation;
+const { analyzePortfolioComposition, recommendBankFunds, recommendISAETFs } = productRecommendation;
 
 // 모던하고 트렌디한 색상 팔레트 (그라데이션 효과를 위한 색상)
 const COLORS = [
@@ -238,7 +238,12 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
     };
   }, [result.portfolio, portfolioData]);
 
-  // 펀드 추천 계산
+  // AI 포트폴리오 분석
+  const portfolioAnalysis = useMemo(() => {
+    return analyzePortfolioComposition(result.portfolio);
+  }, [result.portfolio]);
+
+  // 펀드 추천 계산 (AI 포트폴리오 기반)
   const fundRecommendations = useMemo(() => {
     if (!totalStats.hasData || totalStats.totalCurrentValue === 0) return [];
 
@@ -248,11 +253,12 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
         investmentPeriod: surveyData.investmentPeriod,
         preferredSectors: surveyData.preferredSectors
       },
-      totalStats.totalCurrentValue
+      totalStats.totalCurrentValue,
+      portfolioAnalysis // AI 포트폴리오 분석 결과 전달
     );
-  }, [result, surveyData, totalStats]);
+  }, [result, surveyData, totalStats, portfolioAnalysis]);
 
-  // ISA ETF 추천 계산
+  // ISA ETF 추천 계산 (AI 포트폴리오 기반)
   const isaRecommendations = useMemo(() => {
     if (!totalStats.hasData || totalStats.totalCurrentValue === 0) return null;
 
@@ -263,9 +269,10 @@ const Results = ({ surveyData, onBack, onEditSettings }) => {
       {
         riskTolerance: result.riskTolerance || surveyData.riskTolerance
       },
-      isaAmount
+      isaAmount,
+      portfolioAnalysis // AI 포트폴리오 분석 결과 전달
     );
-  }, [result, surveyData, totalStats]);
+  }, [result, surveyData, totalStats, portfolioAnalysis]);
 
   const chartData = result.portfolio.map((stock, index) => ({
     name: stock.name,

@@ -3,72 +3,254 @@
 import { bankFunds, isaETFs } from '../data/fundProducts';
 
 /**
- * 당행 펀드 추천
- * @param {Object} userProfile - 사용자 프로파일 { riskTolerance, investmentPeriod, preferredSectors }
- * @param {number} totalInvestment - 총 투자 금액
- * @returns {Array} 추천 펀드 리스트
+ * AI 포트폴리오 구성 분석
+ * @param {Array} portfolio - AI가 생성한 포트폴리오
+ * @returns {Object} 포트폴리오 분석 결과
  */
-export const recommendBankFunds = (userProfile, totalInvestment) => {
-  const { riskTolerance, investmentPeriod, preferredSectors } = userProfile;
+export const analyzePortfolioComposition = (portfolio) => {
+  if (!portfolio || portfolio.length === 0) {
+    return {
+      sectorWeights: {},
+      characteristics: {},
+      dominantSectors: [],
+      stockTypes: {},
+      averageMetrics: {}
+    };
+  }
 
-  // 1. 위험성향 매칭
-  let eligibleFunds = bankFunds.filter(fund => {
-    if (riskTolerance === 'conservative') {
-      return fund.riskLevel === 'conservative';
-    } else if (riskTolerance === 'moderate') {
-      return ['conservative', 'moderate'].includes(fund.riskLevel);
-    } else {
-      // aggressive - 모든 펀드 가능
-      return true;
+  // 1. 섹터별 가중치 계산
+  const sectorWeights = {};
+  const stockTypes = {
+    dividend: 0,    // 배당주
+    growth: 0,      // 성장주
+    largeCap: 0,    // 대형주
+    midCap: 0,      // 중형주
+    etf: 0,         // ETF
+    bond: 0         // 채권
+  };
+
+  // 2. 평균 지표 계산을 위한 변수
+  let totalDividendYield = 0;
+  let totalPER = 0;
+  let validDividendCount = 0;
+  let validPERCount = 0;
+
+  portfolio.forEach(stock => {
+    // 섹터별 가중치
+    const sector = stock.sector || 'other';
+    sectorWeights[sector] = (sectorWeights[sector] || 0) + stock.allocation;
+
+    // 주식 타입 분류
+    if (stock.type === 'etf' || stock.name.includes('ETF') || stock.name.includes('KODEX')) {
+      stockTypes.etf += stock.allocation;
+    } else if (stock.type === 'bond' || stock.name.includes('채권')) {
+      stockTypes.bond += stock.allocation;
+    } else if (stock.type === 'dividend' || (stock.dividendYield && stock.dividendYield > 3)) {
+      stockTypes.dividend += stock.allocation;
+    } else if (stock.type === 'growth' || stock.name.includes('성장')) {
+      stockTypes.growth += stock.allocation;
+    }
+
+    // 시가총액 기준 분류
+    if (stock.marketCap) {
+      if (stock.marketCap > 10000000000000) { // 10조원 이상
+        stockTypes.largeCap += stock.allocation;
+      } else if (stock.marketCap > 1000000000000) { // 1조원 이상
+        stockTypes.midCap += stock.allocation;
+      }
+    }
+
+    // 평균 지표 계산
+    if (stock.dividendYield && stock.dividendYield > 0) {
+      totalDividendYield += stock.dividendYield * stock.allocation;
+      validDividendCount += stock.allocation;
+    }
+    if (stock.per && stock.per > 0) {
+      totalPER += stock.per * stock.allocation;
+      validPERCount += stock.allocation;
     }
   });
 
-  // 2. 투자기간 고려
-  if (investmentPeriod === 'short') {
-    // 단기 (1년 미만): 채권형/혼합형 우선
-    eligibleFunds = eligibleFunds.sort((a, b) => {
-      const order = { bond: 1, mixed: 2, equity: 3, reit: 4 };
-      return (order[a.category] || 5) - (order[b.category] || 5);
-    });
-  } else if (investmentPeriod === 'medium') {
-    // 중기 (1-3년): 혼합형/주식형
-    eligibleFunds = eligibleFunds.sort((a, b) => {
-      const order = { mixed: 1, equity: 2, bond: 3, reit: 4 };
-      return (order[a.category] || 5) - (order[b.category] || 5);
-    });
-  } else {
-    // 장기 (3년+): 주식형 우선
-    eligibleFunds = eligibleFunds.sort((a, b) => {
-      const order = { equity: 1, mixed: 2, reit: 3, bond: 4 };
-      return (order[a.category] || 5) - (order[b.category] || 5);
-    });
+  // 3. 지배적인 섹터 찾기 (20% 이상)
+  const dominantSectors = Object.entries(sectorWeights)
+    .filter(([_, weight]) => weight >= 20)
+    .sort((a, b) => b[1] - a[1])
+    .map(([sector, weight]) => ({ sector, weight }));
+
+  // 4. 포트폴리오 특성 파악
+  const characteristics = {
+    isHighTech: (sectorWeights.tech || 0) > 30,
+    isHighDividend: stockTypes.dividend > 30,
+    isGrowthFocused: stockTypes.growth > 40,
+    isDiversified: Object.keys(sectorWeights).length >= 4 && !dominantSectors.find(s => s.weight > 40),
+    hasInternational: portfolio.some(s => s.name.includes('미국') || s.name.includes('글로벌')),
+    hasBonds: stockTypes.bond > 0,
+    hasETFs: stockTypes.etf > 0
+  };
+
+  // 5. 평균 지표
+  const averageMetrics = {
+    dividendYield: validDividendCount > 0 ? totalDividendYield / validDividendCount : 0,
+    per: validPERCount > 0 ? totalPER / validPERCount : 0,
+    totalAllocation: portfolio.reduce((sum, s) => sum + s.allocation, 0)
+  };
+
+  return {
+    sectorWeights,
+    characteristics,
+    dominantSectors,
+    stockTypes,
+    averageMetrics
+  };
+};
+
+/**
+ * 펀드 섹터를 포트폴리오 섹터로 매핑
+ * @param {string} fundSector - 펀드 섹터명
+ * @returns {string} 포트폴리오 섹터명
+ */
+const mapFundSectorToPortfolioSector = (fundSector) => {
+  const sectorMapping = {
+    '기술': 'tech',
+    '금융': 'finance',
+    '헬스케어': 'healthcare',
+    '소비재': 'consumer',
+    '산업재': 'industrial',
+    '에너지': 'energy',
+    '소재': 'materials',
+    '통신': 'telecom',
+    '부동산': 'realestate',
+    '글로벌': 'global',
+    '채권': 'bond',
+    '기타': 'other'
+  };
+
+  for (const [key, value] of Object.entries(sectorMapping)) {
+    if (fundSector.includes(key)) {
+      return value;
+    }
+  }
+  return 'other';
+};
+
+/**
+ * 당행 펀드 추천 (AI 포트폴리오 기반)
+ * @param {Object} userProfile - 사용자 프로파일 { riskTolerance, investmentPeriod, preferredSectors }
+ * @param {number} totalInvestment - 총 투자 금액
+ * @param {Object} portfolioAnalysis - 포트폴리오 분석 결과
+ * @returns {Array} 추천 펀드 리스트
+ */
+export const recommendBankFunds = (userProfile, totalInvestment, portfolioAnalysis = null) => {
+  const { riskTolerance, investmentPeriod, preferredSectors } = userProfile;
+
+  // 포트폴리오 분석이 없으면 기존 로직 사용
+  if (!portfolioAnalysis) {
+    portfolioAnalysis = {
+      sectorWeights: {},
+      characteristics: {},
+      dominantSectors: [],
+      stockTypes: {},
+      averageMetrics: {}
+    };
   }
 
-  // 3. 섹터 선호도 반영
-  if (preferredSectors && preferredSectors.length > 0) {
-    eligibleFunds = eligibleFunds.map(fund => {
-      let sectorScore = 0;
-      if (fund.sector) {
-        fund.sector.forEach(sector => {
-          if (preferredSectors.some(ps => sector.includes(ps))) {
-            sectorScore += 1;
-          }
-        });
-      }
-      return { ...fund, sectorScore };
-    }).sort((a, b) => b.sectorScore - a.sectorScore);
-  }
+  // 모든 펀드에 점수 부여
+  let scoredFunds = bankFunds.map(fund => {
+    let score = 0;
+    let reasons = [];
 
-  // 4. 추천 펀드만 우선 (recommended: true)
-  const recommendedFunds = eligibleFunds.filter(f => f.recommended);
-  const otherFunds = eligibleFunds.filter(f => !f.recommended);
-  eligibleFunds = [...recommendedFunds, ...otherFunds];
+    // 1. 위험성향 매칭 점수 (기본 점수)
+    if (riskTolerance === 'conservative' && fund.riskLevel === 'conservative') {
+      score += 20;
+    } else if (riskTolerance === 'moderate') {
+      if (fund.riskLevel === 'moderate') score += 20;
+      else if (fund.riskLevel === 'conservative') score += 10;
+    } else if (riskTolerance === 'aggressive') {
+      if (fund.riskLevel === 'aggressive') score += 20;
+      else if (fund.riskLevel === 'moderate') score += 15;
+    }
 
-  // 5. 상위 5개 펀드 추천
-  const topFunds = eligibleFunds.slice(0, 5);
+    // 2. 포트폴리오 보완 점수 (핵심 로직)
+    const { sectorWeights, characteristics, stockTypes, averageMetrics } = portfolioAnalysis;
 
-  // 6. 추천 금액 산정 (총 투자금의 30-40%)
-  const recommendedTotalAmount = totalInvestment * 0.35;
+    // 섹터 균형 점수 - 포트폴리오에 부족한 섹터를 보완
+    if (fund.sector && fund.sector.length > 0) {
+      fund.sector.forEach(fundSector => {
+        // 섹터 매핑
+        let mappedSector = mapFundSectorToPortfolioSector(fundSector);
+        let currentWeight = sectorWeights[mappedSector] || 0;
+
+        // 부족한 섹터일수록 높은 점수
+        if (currentWeight < 10) {
+          score += 15;
+          reasons.push(`포트폴리오에 부족한 ${fundSector} 섹터 보완`);
+        } else if (currentWeight < 20) {
+          score += 10;
+        } else if (currentWeight > 40) {
+          // 과도한 섹터는 감점
+          score -= 5;
+        }
+      });
+    }
+
+    // 3. 자산 유형 보완 점수
+    if (characteristics.isGrowthFocused && fund.category === 'bond') {
+      // 성장주 중심 포트폴리오에는 채권 펀드로 안정성 보완
+      score += 25;
+      reasons.push('성장주 중심 포트폴리오의 안정성 보완');
+    }
+
+    if (characteristics.isHighTech && !fund.sector?.includes('기술')) {
+      // 기술주 편중 포트폴리오에는 비기술 섹터 펀드 추천
+      score += 20;
+      reasons.push('기술주 편중 완화');
+    }
+
+    if (stockTypes.dividend < 20 && fund.features?.includes('배당중심')) {
+      // 배당 수익이 적은 포트폴리오에 배당 펀드 추천
+      score += 15;
+      reasons.push('배당 수익 보완');
+    }
+
+    // 4. 지역 분산 점수
+    if (!characteristics.hasInternational && fund.name.includes('글로벌')) {
+      score += 20;
+      reasons.push('글로벌 분산 투자');
+    }
+
+    // 5. 투자기간 매칭
+    if (investmentPeriod === 'short' && fund.category === 'bond') {
+      score += 15;
+    } else if (investmentPeriod === 'medium' && fund.category === 'mixed') {
+      score += 15;
+    } else if (investmentPeriod === 'long' && fund.category === 'equity') {
+      score += 15;
+    }
+
+    // 6. 추천 펀드 보너스
+    if (fund.recommended) {
+      score += 10;
+    }
+
+    // 7. 수익률 점수
+    if (fund.threeYearReturn > 10) {
+      score += 5;
+    }
+
+    return {
+      ...fund,
+      score,
+      matchReasons: reasons.slice(0, 3) // 상위 3개 이유만 저장
+    };
+  });
+
+  // 점수 순으로 정렬
+  scoredFunds.sort((a, b) => b.score - a.score);
+
+  // 상위 5개 펀드 선택
+  const topFunds = scoredFunds.slice(0, 5);
+
+  // 추천 금액 산정 (총 투자금의 30-40%)
 
   return topFunds.map((fund, index) => {
     // 비중 배분: 첫 번째 40%, 두 번째 30%, 나머지 균등
@@ -82,46 +264,92 @@ export const recommendBankFunds = (userProfile, totalInvestment) => {
     return {
       ...fund,
       recommendedAmount,
-      reason: generateFundReason(fund, userProfile),
+      reason: generateFundReason(fund, userProfile, portfolioAnalysis),
       priority: index + 1
     };
   });
 };
 
 /**
- * ISA ETF 포트폴리오 추천
+ * ISA ETF 포트폴리오 추천 (AI 포트폴리오 기반)
  * @param {Object} userProfile - 사용자 프로파일 { riskTolerance }
  * @param {number} isaAmount - ISA 투자 금액
+ * @param {Object} portfolioAnalysis - 포트폴리오 분석 결과
  * @returns {Object} ETF 포트폴리오 추천
  */
-export const recommendISAETFs = (userProfile, isaAmount) => {
+export const recommendISAETFs = (userProfile, isaAmount, portfolioAnalysis = null) => {
   const { riskTolerance } = userProfile;
 
-  // 1. 위험성향별 자산 배분 전략
+  // 포트폴리오 분석이 없으면 기존 로직 사용
+  if (!portfolioAnalysis) {
+    portfolioAnalysis = {
+      sectorWeights: {},
+      characteristics: {},
+      dominantSectors: [],
+      stockTypes: {},
+      averageMetrics: {}
+    };
+  }
+
+  const { sectorWeights, characteristics, stockTypes, averageMetrics } = portfolioAnalysis;
+
+  // 1. AI 포트폴리오 기반 지능형 자산 배분
   let allocation = {};
 
+  // 기본 위험성향별 배분을 시작점으로
   if (riskTolerance === 'conservative') {
     allocation = {
-      domestic_equity: 0.2,  // 국내 주식 20%
-      overseas_equity: 0.1,  // 해외 주식 10%
-      domestic_bond: 0.4,    // 국내 채권 40%
-      overseas_bond: 0.3     // 해외 채권 30%
+      domestic_equity: 0.2,
+      overseas_equity: 0.1,
+      domestic_bond: 0.4,
+      overseas_bond: 0.3
     };
   } else if (riskTolerance === 'moderate') {
     allocation = {
-      domestic_equity: 0.3,  // 국내 주식 30%
-      overseas_equity: 0.3,  // 해외 주식 30%
-      domestic_bond: 0.2,    // 국내 채권 20%
-      overseas_bond: 0.2     // 해외 채권 20%
+      domestic_equity: 0.3,
+      overseas_equity: 0.3,
+      domestic_bond: 0.2,
+      overseas_bond: 0.2
     };
   } else {
-    // aggressive
     allocation = {
-      domestic_equity: 0.3,  // 국내 주식 30%
-      overseas_equity: 0.5,  // 해외 주식 50%
-      domestic_bond: 0.1,    // 국내 채권 10%
-      overseas_bond: 0.1     // 해외 채권 10%
+      domestic_equity: 0.3,
+      overseas_equity: 0.5,
+      domestic_bond: 0.1,
+      overseas_bond: 0.1
     };
+  }
+
+  // 2. 포트폴리오 특성에 따른 조정
+  // 국내 주식만 있는 경우 해외 비중 증가
+  if (!characteristics.hasInternational) {
+    allocation.overseas_equity = Math.min(allocation.overseas_equity + 0.2, 0.6);
+    allocation.domestic_equity = Math.max(allocation.domestic_equity - 0.1, 0.1);
+  }
+
+  // 배당주가 많은 경우 ISA에 고배당 ETF 우선 배치 (세제혜택)
+  if (characteristics.isHighDividend || averageMetrics.dividendYield > 3) {
+    // 채권 비중을 줄이고 배당형 주식 ETF 비중 증가
+    const bondReduction = 0.1;
+    allocation.domestic_bond = Math.max(allocation.domestic_bond - bondReduction, 0.1);
+    allocation.domestic_equity += bondReduction * 0.5;
+    allocation.overseas_equity += bondReduction * 0.5;
+  }
+
+  // 성장주 위주 포트폴리오면 안정적인 채권 비중 증가
+  if (characteristics.isGrowthFocused) {
+    const equityReduction = 0.15;
+    allocation.domestic_equity = Math.max(allocation.domestic_equity - equityReduction * 0.4, 0.1);
+    allocation.overseas_equity = Math.max(allocation.overseas_equity - equityReduction * 0.6, 0.1);
+    allocation.domestic_bond += equityReduction * 0.5;
+    allocation.overseas_bond += equityReduction * 0.5;
+  }
+
+  // 기술주 편중인 경우 섹터 다양화
+  if (characteristics.isHighTech) {
+    // 기술 ETF 대신 다른 섹터 ETF 우선
+    allocation.sector_diversified = 0.15;
+    allocation.overseas_equity = Math.max(allocation.overseas_equity - 0.15, 0.2);
   }
 
   // 2. 각 카테고리에서 최적 ETF 선택
@@ -150,7 +378,7 @@ export const recommendISAETFs = (userProfile, isaAmount) => {
       recommendedAmount,
       shares,
       estimatedPrice,
-      reason: generateETFReason(selectedETF, category, riskTolerance)
+      reason: generateETFReason(selectedETF, category, riskTolerance, portfolioAnalysis)
     });
   });
 
@@ -221,70 +449,74 @@ export const calculateISATaxBenefit = (investmentAmount, expectedReturnRate) => 
  * 펀드 추천 이유 생성
  * @param {Object} fund - 펀드 정보
  * @param {Object} userProfile - 사용자 프로파일
+ * @param {Object} portfolioAnalysis - 포트폴리오 분석 결과
  * @returns {string} 추천 이유
  */
-const generateFundReason = (fund, userProfile) => {
+const generateFundReason = (fund, userProfile, portfolioAnalysis = null) => {
   const reasons = [];
 
-  // 위험성향 매칭
-  if (fund.riskLevel === userProfile.riskTolerance) {
+  // 포트폴리오 기반 추천 이유가 있으면 우선 사용
+  if (fund.matchReasons && fund.matchReasons.length > 0) {
+    reasons.push(...fund.matchReasons);
+  }
+
+  // 추가 이유들
+  if (fund.riskLevel === userProfile.riskTolerance && reasons.length < 3) {
     reasons.push(`${fund.riskLevel === 'conservative' ? '안정적인' : fund.riskLevel === 'moderate' ? '균형잡힌' : '성장 중심의'} 투자성향에 적합`);
   }
 
-  // 수익률
-  if (fund.threeYearReturn > 10) {
+  if (fund.threeYearReturn > 10 && reasons.length < 3) {
     reasons.push(`최근 3년 우수한 수익률 (${fund.threeYearReturn}%)`);
-  } else if (fund.threeYearReturn > 7) {
-    reasons.push(`안정적인 3년 평균 수익률 (${fund.threeYearReturn}%)`);
   }
 
-  // 수수료
-  if (fund.managementFee < 0.7) {
+  if (fund.managementFee < 0.7 && reasons.length < 3) {
     reasons.push(`저렴한 운용보수 (${fund.managementFee}%)`);
-  }
-
-  // 특징
-  if (fund.features.includes('배당중심') || fund.features.includes('월배당') || fund.features.includes('분기배당')) {
-    reasons.push('정기적인 현금흐름 제공');
   }
 
   return reasons.slice(0, 3).join(', ');
 };
 
 /**
- * ETF 추천 이유 생성
+ * ETF 추천 이유 생성 (AI 포트폴리오 기반)
  * @param {Object} etf - ETF 정보
  * @param {string} category - 카테고리
  * @param {string} riskTolerance - 위험성향
+ * @param {Object} portfolioAnalysis - 포트폴리오 분석 결과
  * @returns {string} 추천 이유
  */
-const generateETFReason = (etf, category, riskTolerance) => {
+const generateETFReason = (etf, category, riskTolerance, portfolioAnalysis = null) => {
   const reasons = [];
 
-  // 카테고리별 이유
-  if (category.includes('domestic')) {
+  // 포트폴리오 보완 이유 우선
+  if (portfolioAnalysis) {
+    const { characteristics, averageMetrics } = portfolioAnalysis;
+
+    if (!characteristics.hasInternational && category.includes('overseas')) {
+      reasons.push('포트폴리오에 부족한 해외 자산 보완');
+    }
+
+    if (characteristics.isGrowthFocused && category.includes('bond')) {
+      reasons.push('성장주 중심 포트폴리오의 안정성 강화');
+    }
+
+    if (averageMetrics.dividendYield > 3 && etf.dividendYield > 3) {
+      reasons.push('ISA 계좌의 배당 비과세 혜택 극대화');
+    }
+  }
+
+  // 기본 이유들
+  if (category.includes('domestic') && reasons.length < 3) {
     reasons.push('국내 시장 노출');
-  } else {
+  } else if (reasons.length < 3) {
     reasons.push('글로벌 분산 투자');
   }
 
-  // 비용
-  if (etf.expenseRatio < 0.15) {
+  if (etf.expenseRatio < 0.15 && reasons.length < 3) {
     reasons.push(`초저비용 (${etf.expenseRatio}%)`);
-  } else if (etf.expenseRatio < 0.3) {
-    reasons.push(`저비용 (${etf.expenseRatio}%)`);
   }
 
-  // 배당
-  if (etf.dividendYield > 3) {
+  if (etf.dividendYield > 3 && reasons.length < 3) {
     reasons.push(`높은 배당수익률 (${etf.dividendYield}%)`);
-  } else if (etf.dividendYield > 0) {
-    reasons.push(`배당 수익 (${etf.dividendYield}%)`);
-  }
-
-  // ISA 적합성
-  if (etf.isaRecommended) {
-    reasons.push('ISA 최적화');
   }
 
   return reasons.slice(0, 3).join(', ');
@@ -384,6 +616,7 @@ export const simulateMonthlyInvestment = (monthlyAmount, expectedReturn, years) 
 
 // Default export로 모든 함수 제공
 export default {
+  analyzePortfolioComposition,
   recommendBankFunds,
   recommendISAETFs,
   calculateISATaxBenefit,
