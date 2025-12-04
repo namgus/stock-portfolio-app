@@ -382,14 +382,7 @@ export const simulateMonthlyInvestment = (monthlyAmount, expectedReturn, years) 
   };
 };
 
-// Named exports와 default export 모두 제공
-export {
-  recommendBankFunds,
-  recommendISAETFs,
-  calculateISATaxBenefit,
-  simulateMonthlyInvestment
-};
-
+// Default export로 모든 함수 제공
 export default {
   recommendBankFunds,
   recommendISAETFs,
