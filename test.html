@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>포트폴리오 앱 디버깅 테스트</h1>
+    <button onclick="testApp()">테스트 시작</button>
+    <pre id="result"></pre>
+    <script>
+        async function testApp() {
+            const result = document.getElementById('result');
+            result.textContent = "테스트 중...\n";
+            
+            try {
+                // 1. 프론트엔드 확인
+                const frontResp = await fetch('http://localhost:5173');
+                result.textContent += "✅ 프론트엔드 서버: " + (frontResp.ok ? "정상" : "오류") + "\n";
+                
+                // 2. 백엔드 확인
+                const backResp = await fetch('http://localhost:3001/api/health');
+                const backData = await backResp.json();
+                result.textContent += "✅ 백엔드 서버: " + backData.status + "\n";
+                
+                // 3. 브라우저에서 앱 열기
+                result.textContent += "\n📱 http://localhost:5173 열기...\n";
+                result.textContent += "개발자도구(F12) > Console 탭에서 에러 확인하세요\n";
+                window.open('http://localhost:5173', '_blank');
+                
+            } catch(e) {
+                result.textContent += "❌ 에러: " + e.message + "\n";
+            }
+        }
+    </script>
+</body>
+</html>

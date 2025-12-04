@@ -9,7 +9,8 @@ import Backtesting from '../components/Backtesting';
 import NewsSentiment from '../components/NewsSentiment';
 import Recommendations from '../components/Recommendations';
 import RebalancingModal from '../components/RebalancingModal';
-import { recommendBankFunds, recommendISAETFs } from '../utils/productRecommendation';
+import productRecommendation from '../utils/productRecommendation';
+const { recommendBankFunds, recommendISAETFs } = productRecommendation;
 
 // 모던하고 트렌디한 색상 팔레트 (그라데이션 효과를 위한 색상)
 const COLORS = [
